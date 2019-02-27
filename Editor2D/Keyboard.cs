@@ -31,7 +31,7 @@ namespace Editor2D
         }
 
         static KeyCode[] valid_keys = (KeyCode[])Enum.GetValues(typeof(KeyCode));
-	    static KeyBinding null_key  = new KeyBinding(Modifier.NONE, KeyCode.None, Command.NOP);
+        static KeyBinding null_key  = new KeyBinding(Modifier.NONE, KeyCode.None, Command.NOP);
 
         [Tooltip("How long a key must be pressed for before it is registered as being held down.")]
         [SerializeField] float LongPressDelay = 0.2f;
@@ -61,19 +61,19 @@ namespace Editor2D
             new KeyBinding(Modifier.NONE,    KeyCode.C,          Command.CLONE                 ),
             new KeyBinding(Modifier.NONE,    KeyCode.W,          Command.WRITE                 ),
             new KeyBinding(Modifier.CONTROL, KeyCode.X,          Command.CUT                   ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.C,          Command.COPY                  ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.V,          Command.PASTE                 ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.Z,          Command.UNDO                  ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.Y,          Command.REDO                  ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.C,          Command.COPY                  ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.V,          Command.PASTE                 ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.Z,          Command.UNDO                  ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.Y,          Command.REDO                  ),
             new KeyBinding(Modifier.NONE,    KeyCode.X,          Command.DELETE                ),
             new KeyBinding(Modifier.SHIFT,   KeyCode.F,          Command.FOCUS_VIEW            ),
             new KeyBinding(Modifier.CONTROL, KeyCode.N,          Command.NEW_LAYER             ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.RightArrow, Command.NEXT_MODEL            ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.LeftArrow,  Command.PREVIOUS_MODEL        ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.UpArrow,    Command.NEXT_LAYER            ),
-	        new KeyBinding(Modifier.CONTROL, KeyCode.DownArrow,  Command.PREVIOUS_LAYER        ),
-	        new KeyBinding(Modifier.SHIFT,   KeyCode.UpArrow,    Command.MOVE_NEXT_LAYER       ),
-	        new KeyBinding(Modifier.SHIFT,   KeyCode.DownArrow,  Command.MOVE_PREVIOUS_LAYER   ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.RightArrow, Command.NEXT_MODEL            ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.LeftArrow,  Command.PREVIOUS_MODEL        ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.UpArrow,    Command.NEXT_LAYER            ),
+            new KeyBinding(Modifier.CONTROL, KeyCode.DownArrow,  Command.PREVIOUS_LAYER        ),
+            new KeyBinding(Modifier.SHIFT,   KeyCode.UpArrow,    Command.MOVE_NEXT_LAYER       ),
+            new KeyBinding(Modifier.SHIFT,   KeyCode.DownArrow,  Command.MOVE_PREVIOUS_LAYER   ),
         };
 
         float long_press_time;
@@ -90,7 +90,7 @@ namespace Editor2D
                 if (Input.GetKeyUp(key)) {
                     HandleModifierUp(key);
                     long_press_time = 0;
-		            long_press_key = null_key;
+                    long_press_key = null_key;
                     continue;
                 }
 
@@ -106,7 +106,7 @@ namespace Editor2D
                     // some time to issue multiple commands.
                     //
                     // @Todo: Some shortcuts should not allow for this feature
-		
+        
                     if (retrigger_time >= RetriggerDelay) {
                         retrigger_time = 0;
                         return long_press_key.command;
@@ -139,8 +139,8 @@ namespace Editor2D
             switch (key) {
                 case KeyCode.LeftControl:
                 case KeyCode.RightControl:
-		        case KeyCode.LeftShift:
-		        case KeyCode.RightShift:
+                case KeyCode.LeftShift:
+                case KeyCode.RightShift:
                 case KeyCode.LeftAlt:
                 case KeyCode.RightAlt: {
                     modifier = Modifier.NONE;
