@@ -51,6 +51,7 @@ namespace Editor2D
         GameObject[] palette; 
         int undo_position;
         int entityid;
+        GameObject[] selection;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Vector3 view) {
             this.view = view;
@@ -58,6 +59,7 @@ namespace Editor2D
             this.palette = palette;
             cursors = new List<Cursor>(1);
             cursors.Add(new Cursor() { position = Vector3.zero, pinned = false } );
+            selection = new GameObject[16];
         }
 
         internal void SwitchMode(Mode new_mode) {
@@ -114,33 +116,39 @@ namespace Editor2D
             }
         }
 
-        internal void Move(Vector3 position, Vector3 offset) {
-            var entity = Select(position);
-            if (!entity) {
-                mode = Mode.NORMAL;
-                return;
-            }
-            
+        internal void Move(GameObject entity, Vector3 offset) {
             GridAssign(entity, entity.transform.position + offset);
             entity.transform.position += offset;
         }
 
         internal void Transform(Vector3 offset) {
+            if (selection.Length < cursors.Count) {
+                // Reallocate selection buffer
+                Array.Resize(ref selection, cursors.Count);
+            }
+
             for (int i = 0; i < cursors.Count; i++) {
                 Vector3 position = cursors[i].position;
 
                 if (!MapCoordinate(position + offset, out _)) {
-                    continue;
+                    // Moving out of bounds
+                    return;
                 }
 
-                switch (mode) {
-                    case Mode.GRAB: Move(position, offset); break;
-                }
-                
+                selection[i] = Select(position);
+            }
+
+            for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.NORMAL) {
                     cursors[i] = new Cursor() {
-                        position = position + offset, pinned = false
+                        position = cursors[i].position + offset, pinned = false
                     };
+                }
+
+                if (!selection[i]) continue; // Empty selection
+
+                switch (mode) {
+                    case Mode.GRAB: Move(selection[i], offset); break;
                 }
             }
         }
