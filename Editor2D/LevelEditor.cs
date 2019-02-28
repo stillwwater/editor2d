@@ -79,6 +79,12 @@ namespace Editor2D
             keyboard = new Keyboard();
         }
 
+        void OnApplicationQuit() {
+            if (buffer != null) {
+                buffer.Finalize();
+            }
+        }
+
         void OnDrawGizmos() {
             DrawBoundsGizmo(MinArea, Color.green);
             DrawBoundsGizmo(MaxArea, Color.red);

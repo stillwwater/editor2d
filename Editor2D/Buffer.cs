@@ -51,7 +51,8 @@ namespace Editor2D
         GameObject[] palette; 
         int undo_position;
         int entityid;
-        GameObject[] selection;
+        GameObject[] selection = new GameObject[16];
+        List<GameObject> deletion_pool = new List<GameObject>();
 
         internal Buffer(Chunk chunk, GameObject[] palette, Vector3 view) {
             this.view = view;
@@ -59,7 +60,15 @@ namespace Editor2D
             this.palette = palette;
             cursors = new List<Cursor>(1);
             cursors.Add(new Cursor() { position = Vector3.zero, pinned = false } );
-            selection = new GameObject[16];
+        }
+
+        internal void Finalize() {
+            foreach (var entity in deletion_pool) {
+                GameObject.Destroy(entity);
+            }
+
+            Array.Resize(ref selection, 1);
+            DeselectAll();
         }
 
         internal void SwitchMode(Mode new_mode) {
@@ -112,7 +121,7 @@ namespace Editor2D
                 // @Todo: Free from grid
                 // @Temporary: Add object to pool instead of destroying so
                 // that this action can be undone.
-                GameObject.Destroy(entity);
+                Kill(entity);
             }
         }
 
@@ -181,6 +190,23 @@ namespace Editor2D
 
             cursors.Add(last);
             cursors[cursors.Count - 2] = new Cursor() { position = last.position, pinned = true };
+        }
+
+        void Kill(GameObject entity) {
+            entity.active = false;
+            deletion_pool.Add(entity);
+        }
+
+        void Revive(GameObject entity) {
+            entity.active = true;
+            deletion_pool.Remove(entity);
+            var other = Select(entity.transform.position);
+            if (other) {
+                // Can't have two entities occupy the same space in the
+                // same layer.
+                Kill(other);
+            }
+            GridAssign(entity, entity.transform.position);
         }
 
         GameObject Select(Vector2Int grid_pos) {
@@ -258,8 +284,7 @@ namespace Editor2D
 
             if (entity && temp) {
                 // Multiple entities in one tile, entity must be destroyed.
-                // @Todo: Destroy pool
-                GameObject.Destroy(entity);
+                Kill(entity);
                 chunk.layers[layer].grid[grid_pos.x, grid_pos.y] = temp;
                 chunk.layers[layer].temp[grid_pos.x, grid_pos.y] = null;
                 return;
