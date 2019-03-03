@@ -45,19 +45,19 @@ namespace Editor2D
             switch (cmd) {
                 case Command.NOP: break;
                 case Command.TRANSFORM_UP: {
-                    buffer.Transform(Vector2.up);
+                    buffer.Transform(Vector2.up * buffer.chunk.cell_scale);
                     break;
                 }
                 case Command.TRANSFORM_DOWN: {
-                    buffer.Transform(Vector2.down);
+                    buffer.Transform(Vector2.down * buffer.chunk.cell_scale);
                     break;
                 }
                 case Command.TRANSFORM_LEFT: {
-                    buffer.Transform(Vector2.left);
+                    buffer.Transform(Vector2.left * buffer.chunk.cell_scale);
                     break;
                 }
                 case Command.TRANSFORM_RIGHT: {
-                    buffer.Transform(Vector2.right);
+                    buffer.Transform(Vector2.right * buffer.chunk.cell_scale);
                     break;
                 }
                 case Command.NEXT_LAYER: {
