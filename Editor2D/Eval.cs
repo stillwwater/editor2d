@@ -90,11 +90,13 @@ namespace Editor2D
                     break;
                 }
                 case Command.NEXT_MODEL: {
-                    buffer.palette_index++;
+                    if (buffer.palette_index < buffer.palette.Length - 1)
+                        buffer.palette_index++;
                     break;
                 }
                 case Command.PREVIOUS_MODEL: {
-                    buffer.palette_index--;
+                    if (buffer.palette_index > 0)
+                        buffer.palette_index--;
                     break;
                 }
                 case Command.WRITE: {
