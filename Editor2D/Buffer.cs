@@ -26,7 +26,6 @@ namespace Editor2D
         internal bool pinned;
     }
 
-    [Serializable]
     public class Buffer
     {
         public enum Mode
@@ -40,15 +39,16 @@ namespace Editor2D
             CAMERA
         }
 
+        internal readonly GameObject[] palette;
+        internal readonly List<UndoFrame> undo;
+
         internal Chunk chunk;
         internal Mode mode;
         internal int layer;
         internal int palette_index;
         internal List<Cursor> cursors;
-        internal readonly List<UndoFrame> undo;
         internal Vector3 view;
 
-        GameObject[] palette; 
         int undo_position;
         int entityid;
         GameObject[] selection = new GameObject[16];
@@ -116,11 +116,9 @@ namespace Editor2D
                 if (!MapCoordinate(cursors[i].position, out grid_pos)) {
                     continue;
                 }
-                
+
                 var entity = Select(grid_pos);
                 // @Todo: Free from grid
-                // @Temporary: Add object to pool instead of destroying so
-                // that this action can be undone.
                 Kill(entity);
             }
         }
@@ -193,6 +191,7 @@ namespace Editor2D
         }
 
         void Kill(GameObject entity) {
+            if (!entity) return;
             entity.active = false;
             deletion_pool.Add(entity);
         }
@@ -250,11 +249,11 @@ namespace Editor2D
             if (!MapCoordinate(e.transform.position, out old_pos)) return;
 
             var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
-            
+
             if (chunk.layers[layer].temp[old_pos.x, old_pos.y] == e) {
                 chunk.layers[layer].temp[old_pos.x, old_pos.y] = null;
             }
-            
+
             if (chunk.layers[layer].grid[old_pos.x, old_pos.y] == e) {
                 chunk.layers[layer].grid[old_pos.x, old_pos.y] = null;
             }
@@ -262,7 +261,7 @@ namespace Editor2D
             if (entity && entity != e) {
                 // Entities cannot be assigned to the same node,
                 // must be moved to temporary slot to be cleaned later.
-                chunk.layers[layer].temp[grid_pos.x, grid_pos.y] = e; 
+                chunk.layers[layer].temp[grid_pos.x, grid_pos.y] = e;
                 return;
             }
 
@@ -272,7 +271,7 @@ namespace Editor2D
         ///
         /// Delete duplicate entities and move entities from
         /// temp to grid.
-        /// 
+        ///
         void GridRestore(Vector3 position) {
             Vector2Int grid_pos;
             if (!MapCoordinate(position, out grid_pos)) {
@@ -302,7 +301,7 @@ namespace Editor2D
                 GridRestore(cursors[i].position);
             }
         }
-        
+
         /// Store current state
         void PushFrame() {
             var frame = new UndoFrame();

@@ -7,7 +7,7 @@ namespace Editor2D
     {
         [Header("Camera")]
         [SerializeField] Camera Camera;
-        
+
         [Header("GameObject Lookup")]
         [SerializeField] Filter Filter;
         [SerializeField] Sorting Sorting;
@@ -24,6 +24,8 @@ namespace Editor2D
 
         [Header("Theme")]
         [SerializeField] GameObject Cursor;
+        [SerializeField] GameObject GridSquare;
+        [SerializeField] GameObject GridActive;
 
         [Header("Input")]
         [SerializeField] Keyboard keyboard;
@@ -36,14 +38,15 @@ namespace Editor2D
             var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
             buffer = new Buffer(chunk, Palette, Camera.transform.position);
 
-            for (int i = 0; i < cursor_pool.Length; i++) {
-                cursor_pool[i] = Instantiate(Cursor, transform);
-                cursor_pool[i].active = false;
-            }
+            var theme = new Overlay.Theme() {
+                cursor = Cursor,
+                grid_square = GridSquare,
+                grid_active = GridActive
+            };
 
-            // @Temporary
-            cursor_pool[0].active = true;
-            cursor_pool[0].transform.position = buffer.cursors[0].position;
+            Overlay.Initialize(transform, theme, buffer.palette);
+            Overlay.DrawCursors(buffer);
+            Overlay.DrawPaletteGrid(buffer, Camera);
         }
 
         void Update() {
@@ -53,16 +56,9 @@ namespace Editor2D
 
             if (command != Command.NOP) {
                 Camera.transform.position = buffer.view;
-                
-                // @Temporary: Very slow, use until we have an object pool.
-                for (int i = 0; i < buffer.cursors.Count; i++) {
-                    cursor_pool[i].active = true;
-                    cursor_pool[i].transform.position = buffer.cursors[i].position;
-                }
-
-                for (int i = buffer.cursors.Count; i < cursor_pool.Length; i++) {
-                    cursor_pool[i].active = false;
-                }
+                Overlay.DrawCursors(buffer);
+                // @Performance: No need to redraw every time
+                Overlay.DrawPaletteGrid(buffer, Camera);
             }
         }
 
