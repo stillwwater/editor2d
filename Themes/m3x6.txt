@@ -1,0 +1,4 @@
+font:    m3x6
+author:  Daniel Linssen
+license: Creative Commons Zero v1.0 Universal
+

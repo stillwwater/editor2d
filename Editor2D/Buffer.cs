@@ -190,6 +190,38 @@ namespace Editor2D
             cursors[cursors.Count - 2] = new Cursor() { position = last.position, pinned = true };
         }
 
+        internal GameObject Select(Vector2Int grid_pos) {
+            var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
+            var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
+            // Temp is checked first.
+            return temp ? temp : entity;
+        }
+
+        internal GameObject Select(Vector3 position) {
+            if (MapCoordinate(position, out Vector2Int grid_pos)) {
+                return Select(grid_pos);
+            }
+            return null;
+        }
+
+        /// Map vector position to index on grid
+        internal bool MapCoordinate(Vector3 position, out Vector2Int index) {
+            int x = (int)((position.x - chunk.bounds.x) / chunk.cell_scale);
+            int y = (int)((position.y - chunk.bounds.y) / chunk.cell_scale);
+
+            int scaled_w = chunk.ScaledBounds.width;
+            int scaled_h = chunk.ScaledBounds.height;
+
+            if (x < 0 || y < 0 || x > scaled_w || y > scaled_h) {
+                // Out of bounds
+                // @Todo: Allocate bigger grid/ new chunk when out of bounds?
+                index = Vector2Int.zero;
+                return false;
+            }
+            index = new Vector2Int(x, y);
+            return true;
+        }
+
         void Kill(GameObject entity) {
             if (!entity) return;
             entity.active = false;
@@ -206,38 +238,6 @@ namespace Editor2D
                 Kill(other);
             }
             GridAssign(entity, entity.transform.position);
-        }
-
-        GameObject Select(Vector2Int grid_pos) {
-            var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
-            var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
-            // Temp is checked first.
-            return temp ? temp : entity;
-        }
-
-        GameObject Select(Vector3 position) {
-            if (MapCoordinate(position, out Vector2Int grid_pos)) {
-                return Select(grid_pos);
-            }
-            return null;
-        }
-
-        /// Map vector position to index on grid
-        bool MapCoordinate(Vector3 position, out Vector2Int index) {
-            int x = (int)((position.x - chunk.bounds.x) / chunk.cell_scale);
-            int y = (int)((position.y - chunk.bounds.y) / chunk.cell_scale);
-
-            int scaled_w = chunk.ScaledBounds.width;
-            int scaled_h = chunk.ScaledBounds.height;
-
-            if (x < 0 || y < 0 || x > scaled_w || y > scaled_h) {
-                // Out of bounds
-                // @Todo: Allocate bigger grid/ new chunk when out of bounds?
-                index = Vector2Int.zero;
-                return false;
-            }
-            index = new Vector2Int(x, y);
-            return true;
         }
 
         /// Add reference to an entity at a position in the grid

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Editor2D
 {
@@ -12,6 +13,9 @@ namespace Editor2D
             internal GameObject cursor;
             internal GameObject grid_square;
             internal GameObject grid_active;
+            internal Font font;
+            internal float font_scaling;
+            internal Color text_color;
         }
 
         struct Pool
@@ -22,9 +26,18 @@ namespace Editor2D
             internal GameObject palette_grid_cursor;
         }
 
+        struct TextInfo
+        {
+            internal Transform canvas;
+            internal Text bar_left;
+            internal Text bar_right;
+            internal Text bar_center;
+        }
+
         const int PALETTE_GRID_WIDTH = 10;
 
         static Transform parent;
+        static TextInfo text;
         static Theme theme;
         static Pool pool;
 
@@ -42,6 +55,7 @@ namespace Editor2D
             Alloc(pool.cursors, theme.cursor, 1);
             InitializeSprites(pool.palette_grid, theme.grid_square);
             InitializePreviews(palette);
+            text = CreateCanvas();
             pool.palette_grid_cursor.name = "palette_cursor_000";
         }
 
@@ -104,6 +118,35 @@ namespace Editor2D
                 }
                 pool.cursors[i].active = false;
             }
+        }
+
+        internal static void DrawText(Buffer buffer) {
+            // @Todo: Allow mapped cursor to be displayed.
+            Vector3 cursor = buffer.cursors[buffer.cursors.Count - 1].position;
+            text.bar_right.text = string.Format("{0},{1}", cursor.x, cursor.y);
+
+            string name = "";
+            var selected = buffer.Select(cursor);
+
+            if (selected) {
+                if (buffer.cursors.Count > 1)
+                    name = selected.name + " etc.";
+                else
+                    name = selected.name;
+            }
+
+            if (name.Length > 15) {
+                string start = name.Substring(0, 6);
+                string end = name.Substring(name.Length - 6);
+                name = string.Format("{0}...{1}", start, end);
+            }
+
+            text.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
+
+            if (buffer.mode == Buffer.Mode.NORMAL)
+                text.bar_center.text = "";
+            else
+                text.bar_center.text = string.Format("~{0}~", buffer.mode);
         }
 
         static void InitializeSprites(SpriteRenderer[] items, GameObject original) {
@@ -194,6 +237,106 @@ namespace Editor2D
             }
 
             return src_comp as T;
+        }
+
+        static TextInfo CreateCanvas() {
+            var info = new TextInfo();
+            var entity = new GameObject("canvas_000");
+
+            var canvas = entity.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            var raycaster = entity.AddComponent<GraphicRaycaster>();
+            var scalar = entity.AddComponent<CanvasScaler>();
+            scalar.scaleFactor = 1f;
+            scalar.dynamicPixelsPerUnit = 100f;
+
+            var rt = entity.GetComponent<RectTransform>();
+            rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0f);
+            rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0f);
+            rt.SetParent(parent);
+
+            info.canvas = entity.transform;
+
+            info.bar_right = CreateText(
+                name:  "bar_right",
+                size:   new Vector2(200, 32),
+                fsize:  32,
+                offset: new Vector3(32, 32),
+                align:  TextAnchor.UpperRight,
+                canvas: canvas);
+
+            info.bar_left = CreateText(
+                name:   "bar_left",
+                size:   new Vector2(200, 32),
+                fsize:  32,
+                offset: new Vector3(32, 32),
+                align:  TextAnchor.UpperLeft,
+                canvas: canvas);
+
+            info.bar_center = CreateText(
+                name:   "bar_center",
+                size:   new Vector2(200, 32),
+                fsize:  32,
+                offset: new Vector3(0, 32),
+                align:  TextAnchor.UpperCenter,
+                canvas: canvas);
+
+            return info;
+        }
+
+        static Text CreateText(
+            string name,
+            Vector2 size,
+            int fsize,
+            Vector3 offset,
+            TextAnchor align,
+            Canvas canvas)
+        {
+            var text_entity = new GameObject(name);
+            text_entity.transform.parent = canvas.transform;
+
+            var t = text_entity.AddComponent<Text>();
+            var rt = t.GetComponent<RectTransform>();
+
+            rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0);
+            rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 0);
+            rt.sizeDelta = size;
+
+            float ax = 0, ay = 0;
+
+            switch (align) {
+                case TextAnchor.UpperLeft:
+                    rt.anchorMax = new Vector2(0, 1);
+                    ax = size.x / 2 + offset.x;
+                    ay = -size.y / 2 - offset.y;
+                    break;
+
+                case TextAnchor.UpperCenter:
+                    rt.anchorMax = new Vector2(.5f, 1);
+                    ax = offset.x;
+                    ay = -size.y / 2 - offset.y;
+                    break;
+
+                case TextAnchor.UpperRight:
+                    rt.anchorMax = new Vector2(1, 1);
+                    ax = -size.x / 2 - offset.x;
+                    ay = -size.y / 2 - offset.y;
+                    break;
+            }
+
+            rt.anchorMin = rt.anchorMax;
+            rt.anchoredPosition = new Vector3(ax, ay);
+
+            t.font = theme.font;
+            t.fontSize = (int)(fsize * theme.font_scaling);
+            t.text = "---";
+            t.color = theme.text_color;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.alignment = align;
+
+            return t;
         }
     }
 }

@@ -23,6 +23,9 @@ namespace Editor2D
         [SerializeField] GameObject[] Palette;
 
         [Header("Theme")]
+        [SerializeField] Font Font;
+        [SerializeField] float FontScaling = 1;
+        [SerializeField] Color TextColor = new Color(0, 0, 0, .8f);
         [SerializeField] GameObject Cursor;
         [SerializeField] GameObject GridSquare;
         [SerializeField] GameObject GridActive;
@@ -30,7 +33,6 @@ namespace Editor2D
         [Header("Input")]
         [SerializeField] Keyboard keyboard;
 
-        GameObject[] cursor_pool = new GameObject[32]; // @Temporary
         Buffer buffer;
 
         void Start() {
@@ -39,14 +41,18 @@ namespace Editor2D
             buffer = new Buffer(chunk, Palette, Camera.transform.position);
 
             var theme = new Overlay.Theme() {
-                cursor = Cursor,
-                grid_square = GridSquare,
-                grid_active = GridActive
+                cursor       = Cursor,
+                grid_square  = GridSquare,
+                grid_active  = GridActive,
+                font         = Font,
+                font_scaling = FontScaling,
+                text_color   = TextColor
             };
 
             Overlay.Initialize(transform, theme, buffer.palette);
             Overlay.DrawCursors(buffer);
             Overlay.DrawPaletteGrid(buffer, Camera);
+            Overlay.DrawText(buffer);
         }
 
         void Update() {
@@ -59,6 +65,7 @@ namespace Editor2D
                 Overlay.DrawCursors(buffer);
                 // @Performance: No need to redraw every time
                 Overlay.DrawPaletteGrid(buffer, Camera);
+                Overlay.DrawText(buffer);
             }
         }
 
@@ -92,10 +99,11 @@ namespace Editor2D
 
         void DrawBoundsGizmo(Rect area, Color color) {
             Gizmos.color = color;
+
             Vector3 pos  = new Vector3(
                 (area.x + area.width / 2) * TileSize,
-                (area.y + area.height / 2) * TileSize
-            );
+                (area.y + area.height / 2) * TileSize);
+
             Vector3 size = new Vector3(area.width * TileSize, area.height * TileSize);
             Gizmos.DrawWireCube(pos, size);
         }
