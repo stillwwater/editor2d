@@ -193,8 +193,15 @@ namespace Editor2D
         internal GameObject Select(Vector2Int grid_pos) {
             var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
             var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
-            // Temp is checked first.
-            return temp ? temp : entity;
+
+            // Temp is checked first
+            entity = temp ? temp : entity;
+
+            if (entity)
+                // Inactive entities can't be selected
+                return entity.active ? entity : null;
+
+            return entity;
         }
 
         internal GameObject Select(Vector3 position) {
