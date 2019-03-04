@@ -30,7 +30,7 @@ namespace Editor2D
         ORDER_IN_LAYER,
         Z_DEPTH,
     }
-    
+
     internal struct Layer
     {
         internal GameObject[,] grid;
@@ -87,7 +87,7 @@ namespace Editor2D
             var bounds = MapEdges(objects, min, max);
             var layer_map = MapLayers(sorting, objects);
 
-            var chunk = new Chunk() { 
+            var chunk = new Chunk() {
                 bounds = bounds,
                 cell_scale = cell_scale,
                 layers = new List<Layer>()
@@ -95,6 +95,15 @@ namespace Editor2D
 
             int size_x = chunk.ScaledBounds.width + 1;
             int size_y = chunk.ScaledBounds.height + 1;
+
+            if (objects.Length == 0) {
+                chunk.layers.Add(new Layer() {
+                    grid = new GameObject[size_x, size_y],
+                    temp = new GameObject[size_x, size_y],
+                    visible = true
+                });
+                return chunk;
+            }
 
             for (int i = 0; i < objects.Length; i++) {
                 var go = objects[i];
@@ -132,7 +141,7 @@ namespace Editor2D
                     break;
                 case Filter.HAS_MESH_RENDERER:
                     component = typeof(MeshRenderer);
-                    break;   
+                    break;
                 case Filter.HAS_SPRITE_RENDERER:
                 default:
                     component = typeof(SpriteRenderer);
@@ -182,29 +191,29 @@ namespace Editor2D
 
             return layer_map;
         }
-        
+
         static Rect MapEdges(GameObject[] objects, Rect min, Rect max) {
             float top = Mathf.NegativeInfinity, right = Mathf.NegativeInfinity;
             float bottom = Mathf.Infinity, left = Mathf.Infinity;
 
             foreach (var obj in objects) {
                 Vector3 pos = obj.transform.position;
-               
+
                 if (pos.x < max.x || pos.x > max.x + max.width) continue;
                 if (pos.y < max.y || pos.y > max.y + max.height) continue;
 
                 if (pos.y > top) top = pos.y;
                 if (pos.y < bottom) bottom = pos.y;
-                
+
                 if (pos.x > right) right = pos.x;
                 if (pos.x < left) left = pos.x;
             }
-            
+
             float clamped_left   = Mathf.Min(left, min.x);
             float clamped_bottom = Mathf.Min(bottom, min.y);
             float clamped_right  = Mathf.Max(right, min.width + min.x);
             float clamped_top    = Mathf.Max(top, min.height + min.y);
-            
+
             return new Rect() {
                 x = clamped_left,
                 y = clamped_bottom,
