@@ -81,9 +81,9 @@ namespace Editor2D
                     if (mode == Mode.GRAB) {
                         mode = Mode.NORMAL;
                         GridRestoreAtCursors(cursors);
-                        DeselectAll();
                         return;
                     }
+                    SelectAtCursors(ref selection);
                     break;
                 }
             }
@@ -129,20 +129,12 @@ namespace Editor2D
         }
 
         internal void Transform(Vector3 offset) {
-            if (selection.Length < cursors.Count) {
-                // Reallocate selection buffer
-                Array.Resize(ref selection, cursors.Count);
-            }
-
             for (int i = 0; i < cursors.Count; i++) {
                 Vector3 position = cursors[i].position;
-
                 if (!MapCoordinate(position + offset, out _)) {
                     // Moving out of bounds
                     return;
                 }
-
-                selection[i] = Select(position);
             }
 
             for (int i = 0; i < cursors.Count; i++) {
@@ -152,7 +144,8 @@ namespace Editor2D
                     };
                 }
 
-                if (!selection[i]) continue; // Empty selection
+                if (!selection[i] || i >= selection.Length)
+                    continue; // Empty selection
 
                 switch (mode) {
                     case Mode.GRAB: Move(selection[i], offset); break;
@@ -186,10 +179,17 @@ namespace Editor2D
 
             var last = cursors[cursors.Count - 1];
 
+            for (int i = 0; i < cursors.Count - 1; i++) {
+                // Don't pin mutiple cursors in the same location
+                if (cursors[i].position == last.position)
+                    return;
+            }
+
             cursors.Add(last);
             cursors[cursors.Count - 2] = new Cursor() { position = last.position, pinned = true };
         }
 
+        /// Select entity at a grid position
         internal GameObject Select(Vector2Int grid_pos) {
             var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
             var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
@@ -204,6 +204,7 @@ namespace Editor2D
             return entity;
         }
 
+        /// Select entity at a world position
         internal GameObject Select(Vector3 position) {
             if (MapCoordinate(position, out Vector2Int grid_pos)) {
                 return Select(grid_pos);
@@ -227,6 +228,26 @@ namespace Editor2D
             }
             index = new Vector2Int(x, y);
             return true;
+        }
+
+        void SelectAtCursors(ref GameObject[] selection) {
+            if (selection.Length < cursors.Count) {
+                // Reallocate selection buffer
+                Array.Resize(ref selection, cursors.Count);
+            }
+
+            for (int i = 0; i < cursors.Count; i++) {
+                Vector3 position = cursors[i].position;
+
+                // Remove overlapping cursors
+                for (int j = 0; j < cursors.Count; j++) {
+                    if (j != i && position == cursors[j].position) {
+                        cursors.RemoveAt(j);
+                        continue;
+                    }
+                }
+                selection[i] = Select(position);
+            }
         }
 
         void Kill(GameObject entity) {
