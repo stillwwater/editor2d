@@ -47,14 +47,14 @@ namespace Editor2D
         internal int layer;
         internal int palette_index;
         internal List<Cursor> cursors;
-        internal Vector3 view;
 
         int undo_position;
         int entityid;
+        Camera view;
         GameObject[] selection = new GameObject[16];
         List<GameObject> deletion_pool = new List<GameObject>();
 
-        internal Buffer(Chunk chunk, GameObject[] palette, Vector3 view) {
+        internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
             this.view = view;
             this.chunk = chunk;
             this.palette = palette;
@@ -129,18 +129,32 @@ namespace Editor2D
         }
 
         internal void Transform(Vector3 offset) {
+            float min_x = Mathf.Infinity, max_x = Mathf.NegativeInfinity;
+            float min_y = Mathf.Infinity, max_y = Mathf.NegativeInfinity;
+
             for (int i = 0; i < cursors.Count; i++) {
-                Vector3 position = cursors[i].position;
-                if (!MapCoordinate(position + offset, out _)) {
+                Vector3 position = cursors[i].position + offset;
+                min_x = Mathf.Min(min_x, position.x);
+                max_x = Mathf.Max(max_x, position.x);
+                min_y = Mathf.Min(min_y, position.y);
+                max_y = Mathf.Max(max_y, position.y);
+
+                if (!MapCoordinate(position, out _)) {
                     // Moving out of bounds
                     return;
                 }
             }
 
+            ScrollView(
+                new Vector3(min_x, min_y),
+                new Vector3(max_x, max_y),
+                offset);
+
             for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.NORMAL) {
                     cursors[i] = new Cursor() {
-                        position = cursors[i].position + offset, pinned = false
+                        position = cursors[i].position + offset,
+                        pinned = false
                     };
                 }
 
@@ -160,7 +174,10 @@ namespace Editor2D
                     if (!Select(new Vector2Int(i, j))) continue;
                     float x = (i + chunk.bounds.x) * chunk.cell_scale;
                     float y = (j + chunk.bounds.y) * chunk.cell_scale;
-                    cursors.Add(new Cursor() { position = new Vector3(x, y), pinned = false } );
+                    cursors.Add(new Cursor() {
+                        position = new Vector3(x, y),
+                        pinned = false
+                    });
                 }
             }
         }
@@ -228,6 +245,26 @@ namespace Editor2D
             }
             index = new Vector2Int(x, y);
             return true;
+        }
+
+        internal void FocusAtCursors() {
+            float min_x = Mathf.Infinity, max_x = Mathf.NegativeInfinity;
+            float min_y = Mathf.Infinity, max_y = Mathf.NegativeInfinity;
+
+            for (int i = 0; i < cursors.Count; i++) {
+                Vector3 position = cursors[i].position;
+                min_x = Mathf.Min(min_x, position.x);
+                max_x = Mathf.Max(max_x, position.x);
+                min_y = Mathf.Min(min_y, position.y);
+                max_y = Mathf.Max(max_y, position.y);
+            }
+
+            Vector2 min = new Vector2(min_x, min_y);
+            Vector2 max = new Vector2(max_x, max_y);
+            Vector2 mid = (min + max) / 2;
+
+            float z = view.transform.position.z;
+            view.transform.position = new Vector3(mid.x, mid.y, z);
         }
 
         void SelectAtCursors(ref GameObject[] selection) {
@@ -328,6 +365,27 @@ namespace Editor2D
             for (int i = 0; i < cursors.Count; i++) {
                 GridRestore(cursors[i].position);
             }
+        }
+
+        ///
+        /// Determine if an area described by its bottom-left
+        /// and top-right coordinates is visible to the camera.
+        /// If not visible, scroll the view to focus on the area.
+        ///
+        void ScrollView(Vector3 min, Vector3 max, Vector3 offset) {
+            // @Todo: reference camera
+            Vector3 min_vis = view.WorldToViewportPoint(min);
+            Vector3 max_vis = view.WorldToViewportPoint(max);
+
+            if ((min_vis.x >= 0 && min_vis.x <= 1)
+                && (min_vis.y >= 0 && min_vis.y <= 1)
+                && (max_vis.x >= 0 && max_vis.x <= 1)
+                && (max_vis.y >= 0 && max_vis.y <= 1)) {
+                // Area within camera viewport
+                return;
+            }
+
+            view.transform.position += offset;
         }
 
         /// Store current state

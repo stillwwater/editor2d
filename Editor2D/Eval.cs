@@ -44,89 +44,87 @@ namespace Editor2D
         internal static void Run(Command cmd, Buffer buffer) {
             switch (cmd) {
                 case Command.NOP: break;
-                case Command.TRANSFORM_UP: {
+                case Command.TRANSFORM_UP:
                     buffer.Transform(Vector2.up * buffer.chunk.cell_scale);
                     break;
-                }
-                case Command.TRANSFORM_DOWN: {
+
+                case Command.TRANSFORM_DOWN:
                     buffer.Transform(Vector2.down * buffer.chunk.cell_scale);
                     break;
-                }
-                case Command.TRANSFORM_LEFT: {
+
+                case Command.TRANSFORM_LEFT:
                     buffer.Transform(Vector2.left * buffer.chunk.cell_scale);
                     break;
-                }
-                case Command.TRANSFORM_RIGHT: {
+
+                case Command.TRANSFORM_RIGHT:
                     buffer.Transform(Vector2.right * buffer.chunk.cell_scale);
                     break;
-                }
-                case Command.NEXT_LAYER: {
+
+                case Command.NEXT_LAYER:
                     if (buffer.layer >= buffer.chunk.layers.Count - 1) {
                         buffer.layer = 0;
                         break;
                     }
                     buffer.layer++;
                     break;
-                }
-                case Command.PREVIOUS_LAYER: {
-                    if (buffer.layer < 0) {
+
+                case Command.PREVIOUS_LAYER:
+                    if (buffer.layer <= 0) {
                         buffer.layer = buffer.chunk.layers.Count - 1;
                         break;
                     }
                     buffer.layer--;
                     break;
-                }
-                case Command.NEW_LAYER: {
+
+                case Command.NEW_LAYER:
                     ChunkUtil.Realloc(ref buffer.chunk, 1);
                     buffer.layer = buffer.chunk.layers.Count - 1;
                     break;
-                }
-                case Command.TOGGLE_GRAB: {
+
+                case Command.TOGGLE_GRAB:
                     buffer.SwitchMode(Buffer.Mode.GRAB);
                     break;
-                }
-                case Command.NORMAL_MODE: {
+
+                case Command.NORMAL_MODE:
                     buffer.SwitchMode(Buffer.Mode.NORMAL);
                     break;
-                }
-                case Command.NEXT_MODEL: {
-                    if (buffer.palette_index < buffer.palette.Length - 1)
+
+                case Command.NEXT_MODEL:
+                    if (buffer.palette_index < buffer.palette.Length - 1) {
                         buffer.palette_index++;
+                    }
                     break;
-                }
-                case Command.PREVIOUS_MODEL: {
+
+                case Command.PREVIOUS_MODEL:
                     if (buffer.palette_index > 0)
                         buffer.palette_index--;
                     break;
-                }
-                case Command.WRITE: {
+
+                case Command.WRITE:
                     buffer.CreateFromPalette(buffer.palette_index);
                     break;
-                }
-                case Command.DELETE: {
+
+                case Command.DELETE:
                     buffer.Delete();
                     break;
-                }
-                case Command.SELECT_ITEM: {
+
+                case Command.SELECT_ITEM:
                     if (buffer.mode != Buffer.Mode.NORMAL) {
-                        buffer.SwitchMode(Buffer.Mode.NORMAL); 
+                        buffer.SwitchMode(Buffer.Mode.NORMAL);
                     }
                     buffer.PinCursor();
                     break;
-                }
-                case Command.TOGGLE_ALL: {
-                    if (buffer.cursors.Count == 1) {
+
+                case Command.TOGGLE_ALL:
+                    if (buffer.cursors.Count == 1)
                         buffer.SelectAllInLayer();
-                    } else {
+                    else
                         buffer.DeselectAll();
-                    }
                     break;
-                }
-                case Command.FOCUS_VIEW: {
-                    Vector3 cursor = buffer.cursors[buffer.cursors.Count - 1].position;
-                    buffer.view = new Vector3(cursor.x, cursor.y, buffer.view.z);
+
+                case Command.FOCUS_VIEW:
+                    buffer.FocusAtCursors();
                     break;
-                }
             }
         }
     }

@@ -36,9 +36,11 @@ namespace Editor2D
         Buffer buffer;
 
         void Start() {
+            if (!Camera) Camera = Camera.main;
+
             // @Todo: Don't allocate on Start(), only on first editor open
             var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
-            buffer = new Buffer(chunk, Palette, Camera.transform.position);
+            buffer = new Buffer(chunk, Palette, Camera);
 
             var theme = new Overlay.Theme() {
                 cursor       = Cursor,
@@ -61,7 +63,6 @@ namespace Editor2D
             Eval.Run(command, buffer);
 
             if (command != Command.NOP) {
-                Camera.transform.position = buffer.view;
                 Overlay.DrawCursors(buffer);
                 // @Performance: No need to redraw every time
                 Overlay.DrawPaletteGrid(buffer, Camera);
