@@ -122,6 +122,12 @@ namespace Editor2D
                         buffer.DeselectAll();
                     break;
 
+                case Command.UNDO:
+                    if (buffer.undo.PopFrame(out UndoFrame frame)) {
+                        buffer.Revert(frame);
+                    }
+                    break;
+
                 case Command.FOCUS_VIEW:
                     buffer.FocusAtCursors();
                     break;

@@ -4,22 +4,6 @@ using UnityEngine;
 
 namespace Editor2D
 {
-    internal struct UndoState
-    {
-        internal GameObject entity;
-        internal Vector3 position;
-        internal Vector3 scale;
-        internal Quaternion rotation;
-        internal Layer layer;
-    }
-
-    internal struct UndoFrame
-    {
-        internal Buffer.Mode mode;
-        internal int layer;
-        internal List<UndoState> states;
-    }
-
     internal struct Cursor
     {
         internal Vector3 position;
@@ -40,15 +24,14 @@ namespace Editor2D
         }
 
         internal readonly GameObject[] palette;
-        internal readonly List<UndoFrame> undo;
 
         internal Chunk chunk;
         internal Mode mode;
         internal int layer;
         internal int palette_index;
         internal List<Cursor> cursors;
+        internal readonly Undo undo;
 
-        int undo_position;
         int entityid;
         Camera view;
         GameObject[] selection = new GameObject[16];
@@ -58,6 +41,7 @@ namespace Editor2D
             this.view = view;
             this.chunk = chunk;
             this.palette = palette;
+            undo = new Undo();
             cursors = new List<Cursor>(1);
             cursors.Add(new Cursor() { position = Vector3.zero, pinned = false } );
         }
@@ -73,19 +57,22 @@ namespace Editor2D
 
         internal void SwitchMode(Mode new_mode) {
             switch (new_mode) {
-                case Mode.NORMAL: {
+                case Mode.NORMAL:
                     DeselectAll();
                     break;
-                }
-                case Mode.GRAB: {
+
+                case Mode.GRAB:
                     if (mode == Mode.GRAB) {
                         mode = Mode.NORMAL;
                         GridRestoreAtCursors(cursors);
                         return;
                     }
-                    SelectAtCursors(ref selection);
+
+                    if (!SelectAtCursors(ref selection)) {
+                        return;
+                    }
+                    undo.PushFrame(this);
                     break;
-                }
             }
             mode = new_mode;
         }
@@ -96,13 +83,19 @@ namespace Editor2D
                 return;
             }
 
+            undo.PushFrame(this);
+
             // @Todo: Keep prefab link
 
             for (int i = 0; i < cursors.Count; i++) {
                 var entity = GameObject.Instantiate(palette[index]);
-                entity.name = string.Format("{0}_{1}", palette[index].name, entityid.ToString("x3"));
-                // @Todo: Invoke(created, created)
+                entity.name = string.Format("{0}_{1:X3}", palette[index].name, entityid);
                 entity.transform.position = cursors[i].position;
+                entity.active = false;
+
+                undo.RegisterChange(entity, layer);
+                entity.active = true;
+                // @Todo: Invoke(created, created)
                 GridAssign(entity, cursors[i].position);
             }
             GridRestoreAtCursors(cursors);
@@ -110,6 +103,8 @@ namespace Editor2D
         }
 
         internal void Delete() {
+            undo.PushFrame(this);
+
             for (int i = 0; i < cursors.Count; i++) {
                 Vector2Int grid_pos;
 
@@ -118,6 +113,7 @@ namespace Editor2D
                 }
 
                 var entity = Select(grid_pos);
+                undo.RegisterChange(entity, layer);
                 // @Todo: Free from grid
                 Kill(entity);
             }
@@ -149,6 +145,7 @@ namespace Editor2D
                 new Vector3(min_x, min_y),
                 new Vector3(max_x, max_y),
                 offset);
+
 
             for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.NORMAL) {
@@ -247,6 +244,31 @@ namespace Editor2D
             return true;
         }
 
+        internal void Revert(UndoFrame frame) {
+            mode = Mode.NORMAL;
+
+            foreach (var state in frame.states) {
+                layer = state.layer;
+
+                if (state.entity.active && !state.alive) {
+                    Kill(state.entity);
+                    continue;
+                }
+
+                if (!state.entity.active && state.alive) {
+                    Revive(state.entity);
+                    continue;
+                }
+
+                GridAssign(state.entity, state.position);
+                state.entity.transform.position = state.position;
+                state.entity.transform.localScale = state.scale;
+                state.entity.transform.rotation = state.rotation;
+            }
+
+            layer = frame.layer;
+        }
+
         internal void FocusAtCursors() {
             float min_x = Mathf.Infinity, max_x = Mathf.NegativeInfinity;
             float min_y = Mathf.Infinity, max_y = Mathf.NegativeInfinity;
@@ -267,11 +289,13 @@ namespace Editor2D
             view.transform.position = new Vector3(mid.x, mid.y, z);
         }
 
-        void SelectAtCursors(ref GameObject[] selection) {
+        bool SelectAtCursors(ref GameObject[] selection) {
             if (selection.Length < cursors.Count) {
                 // Reallocate selection buffer
                 Array.Resize(ref selection, cursors.Count);
             }
+
+            bool has_selection = false;
 
             for (int i = 0; i < cursors.Count; i++) {
                 Vector3 position = cursors[i].position;
@@ -284,7 +308,14 @@ namespace Editor2D
                     }
                 }
                 selection[i] = Select(position);
+
+                if (selection[i]) {
+                    undo.RegisterChange(selection[i], layer);
+                    has_selection = true;
+                }
             }
+
+            return has_selection;
         }
 
         void Kill(GameObject entity) {
@@ -297,7 +328,7 @@ namespace Editor2D
             entity.active = true;
             deletion_pool.Remove(entity);
             var other = Select(entity.transform.position);
-            if (other) {
+            if (other && other != entity) {
                 // Can't have two entities occupy the same space in the
                 // same layer.
                 Kill(other);
@@ -348,6 +379,9 @@ namespace Editor2D
 
             if (entity && temp) {
                 // Multiple entities in one tile, entity must be destroyed.
+                undo.PushFrame(this);
+                undo.RegisterChange(entity, layer);
+
                 Kill(entity);
                 chunk.layers[layer].grid[grid_pos.x, grid_pos.y] = temp;
                 chunk.layers[layer].temp[grid_pos.x, grid_pos.y] = null;
@@ -386,14 +420,6 @@ namespace Editor2D
             }
 
             view.transform.position += offset;
-        }
-
-        /// Store current state
-        void PushFrame() {
-            var frame = new UndoFrame();
-            frame.mode  = mode;
-            frame.layer = layer;
-            undo.Add(frame);
         }
     }
 }
