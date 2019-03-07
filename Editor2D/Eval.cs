@@ -123,7 +123,7 @@ namespace Editor2D
                     break;
 
                 case Command.UNDO:
-                    if (buffer.undo.PopFrame(out UndoFrame frame)) {
+                    if (buffer.undo.PopFrame(out Undo.Frame frame)) {
                         buffer.Revert(frame);
                     }
                     break;

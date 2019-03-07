@@ -68,10 +68,11 @@ namespace Editor2D
                         return;
                     }
 
+                    undo.PushFrame(layer);
                     if (!SelectAtCursors(ref selection)) {
+                        undo.PopFrame(out _);
                         return;
                     }
-                    undo.PushFrame(this);
                     break;
             }
             mode = new_mode;
@@ -82,28 +83,31 @@ namespace Editor2D
                 Debug.LogErrorFormat("[e2d]: No palette entity at {0}", index);
                 return;
             }
-
-            undo.PushFrame(this);
+            mode = Mode.NORMAL;
+            undo.PushFrame(layer);
 
             // @Todo: Keep prefab link
 
             for (int i = 0; i < cursors.Count; i++) {
                 var entity = GameObject.Instantiate(palette[index]);
-                entity.name = string.Format("{0}_{1:X3}", palette[index].name, entityid);
+                entity.name = string.Format(
+                    "{0}_{1:X3}",
+                    palette[index].name,
+                    entityid++);
+
                 entity.transform.position = cursors[i].position;
                 entity.active = false;
 
-                undo.RegisterChange(entity, layer);
+                undo.RegisterState(entity);
                 entity.active = true;
-                // @Todo: Invoke(created, created)
                 GridAssign(entity, cursors[i].position);
+                // @Todo: Invoke(created, created)
             }
             GridRestoreAtCursors(cursors);
-            entityid++;
         }
 
         internal void Delete() {
-            undo.PushFrame(this);
+            undo.PushFrame(layer);
 
             for (int i = 0; i < cursors.Count; i++) {
                 Vector2Int grid_pos;
@@ -113,8 +117,7 @@ namespace Editor2D
                 }
 
                 var entity = Select(grid_pos);
-                undo.RegisterChange(entity, layer);
-                // @Todo: Free from grid
+                undo.RegisterState(entity);
                 Kill(entity);
             }
         }
@@ -244,12 +247,11 @@ namespace Editor2D
             return true;
         }
 
-        internal void Revert(UndoFrame frame) {
+        internal void Revert(Undo.Frame frame) {
             mode = Mode.NORMAL;
+            layer = frame.layer;
 
             foreach (var state in frame.states) {
-                layer = state.layer;
-
                 if (state.entity.active && !state.alive) {
                     Kill(state.entity);
                     continue;
@@ -265,8 +267,6 @@ namespace Editor2D
                 state.entity.transform.localScale = state.scale;
                 state.entity.transform.rotation = state.rotation;
             }
-
-            layer = frame.layer;
         }
 
         internal void FocusAtCursors() {
@@ -310,7 +310,7 @@ namespace Editor2D
                 selection[i] = Select(position);
 
                 if (selection[i]) {
-                    undo.RegisterChange(selection[i], layer);
+                    undo.RegisterState(selection[i]);
                     has_selection = true;
                 }
             }
@@ -378,10 +378,9 @@ namespace Editor2D
             var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
 
             if (entity && temp) {
-                // Multiple entities in one tile, entity must be destroyed.
-                undo.PushFrame(this);
-                undo.RegisterChange(entity, layer);
+                undo.RegisterState(entity);
 
+                // Multiple entities in one tile, entity must be destroyed.
                 Kill(entity);
                 chunk.layers[layer].grid[grid_pos.x, grid_pos.y] = temp;
                 chunk.layers[layer].temp[grid_pos.x, grid_pos.y] = null;
@@ -407,7 +406,6 @@ namespace Editor2D
         /// If not visible, scroll the view to focus on the area.
         ///
         void ScrollView(Vector3 min, Vector3 max, Vector3 offset) {
-            // @Todo: reference camera
             Vector3 min_vis = view.WorldToViewportPoint(min);
             Vector3 max_vis = view.WorldToViewportPoint(max);
 
