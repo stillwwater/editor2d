@@ -13,9 +13,12 @@ namespace Editor2D
             internal GameObject cursor;
             internal GameObject grid_square;
             internal GameObject grid_active;
+            internal GameObject background;
+            internal float border;
             internal Font font;
             internal float font_scaling;
-            internal Color text_color;
+            internal Color font_color;
+            internal Vector2Int palette_area;
         }
 
         struct Pool
@@ -24,6 +27,7 @@ namespace Editor2D
             internal GameObject[] palette_previews;
             internal SpriteRenderer[] palette_grid;
             internal GameObject palette_grid_cursor;
+            internal GameObject background;
         }
 
         struct TextInfo
@@ -50,6 +54,7 @@ namespace Editor2D
                 palette_previews = new GameObject[palette.Length],
                 palette_grid = new SpriteRenderer[PALETTE_GRID_WIDTH],
                 palette_grid_cursor = GameObject.Instantiate(theme.grid_active, parent),
+                background = GameObject.Instantiate(theme.background, parent)
             };
 
             Alloc(pool.cursors, theme.cursor, 1);
@@ -59,7 +64,7 @@ namespace Editor2D
             pool.palette_grid_cursor.name = "palette_cursor_000";
         }
 
-        internal static void DrawPaletteGrid(Buffer buffer, Camera camera) {
+        internal static void DrawPaletteBar(Buffer buffer, Camera camera) {
             Vector3 screen_pixels = new Vector3(Screen.width, Screen.height, 0);
             Vector3 camera_pos    = camera.transform.position;
             Vector3 screen_units  = camera.ScreenToWorldPoint(screen_pixels) - camera_pos;
@@ -69,26 +74,26 @@ namespace Editor2D
                 p.active = false;
             }
 
+            pool.background.active = false;
+
             for (int i = 0; i < pool.palette_grid.Length; i++) {
                 GameObject entity;
-                SpriteRenderer sprite;
 
-                if (i == buffer.palette_index % pool.palette_grid.Length) {
-                    entity = pool.palette_grid_cursor;
-                    pool.palette_grid[i].gameObject.active = false;
-                } else {
-                    entity = pool.palette_grid[i].gameObject;
-                    entity.gameObject.active = true;
-                }
+                entity = pool.palette_grid[i].gameObject;
+                entity.gameObject.active = true;
 
                 float x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
                 float y = (1 - screen_units.y) + camera_pos.y;
                 entity.transform.position = new Vector3(x, y);
 
+                if (i == buffer.palette_index % pool.palette_grid.Length) {
+                    var cursor = pool.palette_grid_cursor;
+                    cursor.transform.position = entity.transform.position;
+                }
+
                 int index_map = i + pool.palette_grid.Length * page;
 
                 if (index_map >= buffer.palette.Length) {
-                    // @Temporary: Use shader to decrease saturation instead.
                     pool.palette_grid[i].color = new Color(.7f, .7f, .7f, 1f);
                     continue;
                 }
@@ -99,6 +104,55 @@ namespace Editor2D
                 preview.transform.localScale = new Vector3(.8f, .8f, .8f);
 
                 pool.palette_grid[i].color = Color.white;
+            }
+        }
+
+        internal static void DrawPaletteScreen(Buffer buffer, Camera camera) {
+            Vector3 camera_pos = camera.transform.position;
+            int width  = theme.palette_area.x;
+            int height = theme.palette_area.y;
+            Debug.Assert(width > 0 && height > 0);
+
+            foreach (var p in pool.palette_previews) {
+                p.active = false;
+            }
+
+            foreach (var sp in pool.palette_grid) {
+                sp.gameObject.active = false;
+            }
+
+            int page = (buffer.palette_index / (width*height));
+            int start = page * (width*height);
+            int length = Math.Min(buffer.palette.Length, width*height + start);
+
+            pool.background.active = true;
+
+            {
+                var bg = pool.background.transform;
+                bg.position   = new Vector3(camera_pos.x, camera_pos.y);
+                bg.localScale = new Vector3(width+theme.border, height+theme.border, 1f);
+            }
+
+            for (int i = start; i < length; i++) {
+                float y = (i - start) / width;
+                float x = (i - start) - y*width;
+
+                // y inverted to draw palette
+                // starting from the top left.
+                Vector3 position = new Vector3(
+                    x + (camera_pos.x - ((float)width - 1f) / 2f),
+                    -y + (camera_pos.y + ((float)height - 1f) / 2f));
+
+                if (i == buffer.palette_index) {
+                    pool.palette_grid_cursor.active = true;
+                    pool.palette_grid_cursor.transform.position = position;
+                }
+
+                var preview = pool.palette_previews[i];
+                pool.palette_previews[i].active = true;
+                pool.palette_previews[i].transform.position = position;
+
+                preview.transform.localScale = Vector3.one;
             }
         }
 
@@ -143,10 +197,56 @@ namespace Editor2D
 
             text.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
 
-            if (buffer.mode == Buffer.Mode.NORMAL)
-                text.bar_center.text = "";
-            else
-                text.bar_center.text = string.Format("~{0}~", buffer.mode);
+            switch (buffer.mode) {
+                case Buffer.Mode.NORMAL:
+                    text.bar_center.text = "";
+                    break;
+
+                case Buffer.Mode.PALETTE:
+                    int area = theme.palette_area.x*theme.palette_area.y;
+                    int page = (buffer.palette_index / area) + 1;
+                    text.bar_center.text = string.Format("~Page {0}~", page);
+                    break;
+
+                default:
+                    text.bar_center.text = string.Format("~{0}~", buffer.mode);
+                    break;
+            }
+        }
+
+        ///
+        /// Simulate movement in a 2d grid structure with a fixed size view.
+        /// The buffer's palette is a single dimension array, but it can
+        /// be displayed in a grid with multiple 'pages'. To select an item
+        /// in the grid the index must be mapped to a position in the buffer's
+        /// palette array.
+        ///
+        internal static int MapToPaletteIndex(Buffer buffer, Vector2 direction) {
+            int width = theme.palette_area.x;
+            int height = theme.palette_area.y;
+            int i = buffer.palette_index;
+
+            // Moving within rows
+            // If going over the row limits, select the item adjancent
+            // to the current position, on the next or previous page.
+            if (direction.x > 0 && i < buffer.palette.Length - 1) {
+                if (i % width >= width - 1) {
+                    i += width*height - (width - 1); // Next page
+                    return Math.Min(i, buffer.palette.Length - 1);
+                }
+                return i + 1;
+            } else if (direction.x < 0 && i > 0) {
+                if (i % width <= 0) {
+                    i -= width*height - (width - 1); // Previous page
+                    // Cannot return a negative index, no change
+                    return i >= 0 ? i : buffer.palette_index;
+                }
+                return i - 1;
+            }
+
+            // Moving within columns
+            i = Math.Min(i + width*(-(int)direction.y), buffer.palette.Length - 1);
+            return i >= 0 ? i : buffer.palette_index;
         }
 
         static void InitializeSprites(SpriteRenderer[] items, GameObject original) {
@@ -331,7 +431,7 @@ namespace Editor2D
             t.font = theme.font;
             t.fontSize = (int)(fsize * theme.font_scaling);
             t.text = "---";
-            t.color = theme.text_color;
+            t.color = theme.font_color;
             t.verticalOverflow = VerticalWrapMode.Overflow;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.alignment = align;

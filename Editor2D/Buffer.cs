@@ -15,11 +15,10 @@ namespace Editor2D
         public enum Mode
         {
             NORMAL,
-            VISUAL,
             GRAB,
-            ROTATE,
             SCALE,
             BOX,
+            PALETTE,
             CAMERA
         }
 
@@ -71,6 +70,13 @@ namespace Editor2D
                     undo.PushFrame(layer);
                     if (!SelectAtCursors(ref selection)) {
                         undo.PopFrame(out _);
+                        return;
+                    }
+                    break;
+
+                case Mode.PALETTE:
+                    if (mode == Mode.PALETTE) {
+                        mode = Mode.NORMAL;
                         return;
                     }
                     break;

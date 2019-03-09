@@ -35,6 +35,7 @@ namespace Editor2D
         TOGGLE_SCALE,
         TOGGLE_HIDE_LAYER,
         TOGGLE_HIDE_OTHER_LAYERS,
+        TOGGLE_PALETTE,
         NEW_LAYER,
         NOP
     }
@@ -45,19 +46,19 @@ namespace Editor2D
             switch (cmd) {
                 case Command.NOP: break;
                 case Command.TRANSFORM_UP:
-                    buffer.Transform(Vector2.up * buffer.chunk.cell_scale);
+                    HandleTransform(buffer, Vector2.up);
                     break;
 
                 case Command.TRANSFORM_DOWN:
-                    buffer.Transform(Vector2.down * buffer.chunk.cell_scale);
+                    HandleTransform(buffer, Vector2.down);
                     break;
 
                 case Command.TRANSFORM_LEFT:
-                    buffer.Transform(Vector2.left * buffer.chunk.cell_scale);
+                    HandleTransform(buffer, Vector2.left);
                     break;
 
                 case Command.TRANSFORM_RIGHT:
-                    buffer.Transform(Vector2.right * buffer.chunk.cell_scale);
+                    HandleTransform(buffer, Vector2.right);
                     break;
 
                 case Command.NEXT_LAYER:
@@ -131,7 +132,20 @@ namespace Editor2D
                 case Command.FOCUS_VIEW:
                     buffer.FocusAtCursors();
                     break;
+
+                case Command.TOGGLE_PALETTE:
+                    buffer.SwitchMode(Buffer.Mode.PALETTE);
+                    break;
             }
+        }
+
+        static void HandleTransform(Buffer buffer, Vector2 direction) {
+            if (buffer.mode == Buffer.Mode.PALETTE) {
+                int i = Overlay.MapToPaletteIndex(buffer, direction);
+                buffer.palette_index = i;
+                return;
+            }
+            buffer.Transform(direction * buffer.chunk.cell_scale);
         }
     }
 }

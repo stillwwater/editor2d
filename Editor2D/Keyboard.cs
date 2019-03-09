@@ -55,6 +55,7 @@ namespace Editor2D
             new KeyBinding(Modifier.NONE,    KeyCode.G,          Command.TOGGLE_GRAB           ),
             new KeyBinding(Modifier.NONE,    KeyCode.B,          Command.TOGGLE_BOX_SELECT     ),
             new KeyBinding(Modifier.NONE,    KeyCode.R,          Command.TOGGLE_ROTATE         ),
+            new KeyBinding(Modifier.NONE,    KeyCode.P,          Command.TOGGLE_PALETTE        ),
             new KeyBinding(Modifier.SHIFT,   KeyCode.S,          Command.TOGGLE_SCALE          ),
             new KeyBinding(Modifier.NONE,    KeyCode.S,          Command.SELECT_ITEM           ),
             new KeyBinding(Modifier.NONE,    KeyCode.Escape,     Command.NORMAL_MODE           ),
@@ -106,7 +107,7 @@ namespace Editor2D
                     // some time to issue multiple commands.
                     //
                     // @Todo: Some shortcuts should not allow for this feature
-        
+
                     if (retrigger_time >= RetriggerDelay) {
                         retrigger_time = 0;
                         return long_press_key.command;
@@ -123,6 +124,38 @@ namespace Editor2D
             return Command.NOP;
         }
 
+        void HandleModifierUp(KeyCode key) {
+            switch (key) {
+                case KeyCode.LeftControl:
+                case KeyCode.RightControl:
+                case KeyCode.LeftShift:
+                case KeyCode.RightShift:
+                case KeyCode.LeftAlt:
+                case KeyCode.RightAlt:
+                    modifier = Modifier.NONE;
+                    break;
+            }
+        }
+
+        void HandleModifierDown(KeyCode key) {
+            switch (key) {
+                case KeyCode.LeftControl:
+                case KeyCode.RightControl:
+                    modifier = Modifier.CONTROL;
+                    break;
+
+                case KeyCode.LeftShift:
+                case KeyCode.RightShift:
+                    modifier = Modifier.SHIFT;
+                    break;
+
+                case KeyCode.LeftAlt:
+                case KeyCode.RightAlt:
+                    modifier = Modifier.ALT;
+                    break;
+            }
+        }
+
         Command MapKeyPress(Modifier mod, KeyCode key) {
             for (int i = 0; i < KeyBindings.Length; i++) {
                 var key_binding = KeyBindings[i];
@@ -133,42 +166,6 @@ namespace Editor2D
                 }
             }
             return Command.NOP;
-        }
-
-        void HandleModifierUp(KeyCode key) {
-            switch (key) {
-                case KeyCode.LeftControl:
-                case KeyCode.RightControl:
-                case KeyCode.LeftShift:
-                case KeyCode.RightShift:
-                case KeyCode.LeftAlt:
-                case KeyCode.RightAlt: {
-                    modifier = Modifier.NONE;
-                    break;
-                }
-            }
-        }
-
-        void HandleModifierDown(KeyCode key) {
-            switch (key) {
-                case KeyCode.LeftControl:
-                case KeyCode.RightControl: {
-                    modifier = Modifier.CONTROL;
-                    break;
-                }
-                
-                case KeyCode.LeftShift:
-                case KeyCode.RightShift: {
-                    modifier = Modifier.SHIFT;
-                    break;
-                }
-
-                case KeyCode.LeftAlt:
-                case KeyCode.RightAlt: {
-                    modifier = Modifier.ALT;
-                    break;
-                }
-            }
         }
     }
 }
