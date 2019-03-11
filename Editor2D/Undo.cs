@@ -42,7 +42,7 @@ namespace Editor2D
                 position = entity.transform.position,
                 scale    = entity.transform.localScale,
                 rotation = entity.transform.rotation,
-                alive    = entity.active
+                alive    = entity.activeSelf
             });
         }
 

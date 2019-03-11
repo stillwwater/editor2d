@@ -38,7 +38,7 @@ namespace Editor2D
             internal Text bar_center;
         }
 
-        const int PALETTE_GRID_WIDTH = 10;
+        const int Palette_GRID_WIDTH = 10;
 
         static Transform parent;
         static TextInfo text;
@@ -52,7 +52,7 @@ namespace Editor2D
             pool = new Pool() {
                 cursors = new List<GameObject>(),
                 palette_previews = new GameObject[palette.Length],
-                palette_grid = new SpriteRenderer[PALETTE_GRID_WIDTH],
+                palette_grid = new SpriteRenderer[Palette_GRID_WIDTH],
                 palette_grid_cursor = GameObject.Instantiate(theme.grid_active, parent),
                 background = GameObject.Instantiate(theme.background, parent)
             };
@@ -71,16 +71,16 @@ namespace Editor2D
             int page = buffer.palette_index / pool.palette_grid.Length;
 
             foreach (var p in pool.palette_previews) {
-                p.active = false;
+                p.SetActive(false);
             }
 
-            pool.background.active = false;
+            pool.background.SetActive(false);
 
             for (int i = 0; i < pool.palette_grid.Length; i++) {
                 GameObject entity;
 
                 entity = pool.palette_grid[i].gameObject;
-                entity.gameObject.active = true;
+                entity.gameObject.SetActive(true);
 
                 float x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
                 float y = (1 - screen_units.y) + camera_pos.y;
@@ -99,9 +99,9 @@ namespace Editor2D
                 }
 
                 var preview = pool.palette_previews[index_map];
-                preview.transform.position = new Vector3(x, y);
-                preview.active = true;
+                preview.transform.position   = new Vector3(x, y);
                 preview.transform.localScale = new Vector3(.8f, .8f, .8f);
+                preview.SetActive(true);
 
                 pool.palette_grid[i].color = Color.white;
             }
@@ -114,18 +114,18 @@ namespace Editor2D
             Debug.Assert(width > 0 && height > 0);
 
             foreach (var p in pool.palette_previews) {
-                p.active = false;
+                p.SetActive(false);
             }
 
             foreach (var sp in pool.palette_grid) {
-                sp.gameObject.active = false;
+                sp.gameObject.SetActive(false);
             }
 
             int page = (buffer.palette_index / (width*height));
             int start = page * (width*height);
             int length = Math.Min(buffer.palette.Length, width*height + start);
 
-            pool.background.active = true;
+            pool.background.SetActive(true);
 
             {
                 var bg = pool.background.transform;
@@ -144,15 +144,15 @@ namespace Editor2D
                     -y + (camera_pos.y + ((float)height - 1f) / 2f));
 
                 if (i == buffer.palette_index) {
-                    pool.palette_grid_cursor.active = true;
+                    pool.palette_grid_cursor.SetActive(true);
                     pool.palette_grid_cursor.transform.position = position;
                 }
 
                 var preview = pool.palette_previews[i];
-                pool.palette_previews[i].active = true;
-                pool.palette_previews[i].transform.position = position;
-
+                preview.transform.position   = position;
                 preview.transform.localScale = Vector3.one;
+                preview.SetActive(true);
+
             }
         }
 
@@ -162,15 +162,15 @@ namespace Editor2D
             }
 
             for (int i = 0; i < buffer.cursors.Count; i++) {
-                pool.cursors[i].active = true;
+                pool.cursors[i].SetActive(true);
                 pool.cursors[i].transform.position = buffer.cursors[i].position;
             }
 
             for (int i = buffer.cursors.Count; i < pool.cursors.Count; i++) {
-                if (!pool.cursors[i].active) {
+                if (!pool.cursors[i].activeSelf) {
                     break;
                 }
-                pool.cursors[i].active = false;
+                pool.cursors[i].SetActive(false);
             }
         }
 
@@ -198,18 +198,20 @@ namespace Editor2D
             text.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
 
             switch (buffer.mode) {
-                case Buffer.Mode.NORMAL:
+                case Buffer.Mode.Normal:
                     text.bar_center.text = "";
                     break;
 
-                case Buffer.Mode.PALETTE:
+                case Buffer.Mode.Palette:
                     int area = theme.palette_area.x*theme.palette_area.y;
                     int page = (buffer.palette_index / area) + 1;
                     text.bar_center.text = string.Format("~Page {0}~", page);
                     break;
 
                 default:
-                    text.bar_center.text = string.Format("~{0}~", buffer.mode);
+                    // @Performance: Cache string allocation
+                    string mode = buffer.mode.ToString().ToUpper();
+                    text.bar_center.text = string.Format("~{0}~", mode);
                     break;
             }
         }
@@ -308,7 +310,7 @@ namespace Editor2D
             }
 
             entity.name = string.Format("{0}{1}_{2}", prefix, original.name, id.ToString("x3"));
-            entity.active = false;
+            entity.SetActive(false);
             return entity;
         }
 

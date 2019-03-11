@@ -14,11 +14,11 @@ namespace Editor2D
     {
         public enum Mode
         {
-            NORMAL,
-            GRAB,
-            SCALE,
-            BOX,
-            PALETTE,
+            Normal,
+            Grab,
+            Scale,
+            Box,
+            Palette,
             CAMERA
         }
 
@@ -45,7 +45,7 @@ namespace Editor2D
             cursors.Add(new Cursor() { position = Vector3.zero, pinned = false } );
         }
 
-        internal void Finalize() {
+        internal void Free() {
             foreach (var entity in deletion_pool) {
                 GameObject.Destroy(entity);
             }
@@ -56,13 +56,13 @@ namespace Editor2D
 
         internal void SwitchMode(Mode new_mode) {
             switch (new_mode) {
-                case Mode.NORMAL:
+                case Mode.Normal:
                     DeselectAll();
                     break;
 
-                case Mode.GRAB:
-                    if (mode == Mode.GRAB) {
-                        mode = Mode.NORMAL;
+                case Mode.Grab:
+                    if (mode == Mode.Grab) {
+                        mode = Mode.Normal;
                         GridRestoreAtCursors(cursors);
                         return;
                     }
@@ -74,9 +74,9 @@ namespace Editor2D
                     }
                     break;
 
-                case Mode.PALETTE:
-                    if (mode == Mode.PALETTE) {
-                        mode = Mode.NORMAL;
+                case Mode.Palette:
+                    if (mode == Mode.Palette) {
+                        mode = Mode.Normal;
                         return;
                     }
                     break;
@@ -89,7 +89,7 @@ namespace Editor2D
                 Debug.LogErrorFormat("[e2d]: No palette entity at {0}", index);
                 return;
             }
-            mode = Mode.NORMAL;
+            mode = Mode.Normal;
             undo.PushFrame(layer);
 
             // @Todo: Keep prefab link
@@ -102,17 +102,17 @@ namespace Editor2D
                     entityid++);
 
                 entity.transform.position = cursors[i].position;
-                entity.active = false;
+                entity.SetActive(false);
 
                 undo.RegisterState(entity);
-                entity.active = true;
+                entity.SetActive(true);
                 GridAssign(entity, cursors[i].position);
                 // @Todo: Invoke(created, created)
             }
             GridRestoreAtCursors(cursors);
         }
 
-        internal void Delete() {
+        internal void Erase() {
             undo.PushFrame(layer);
 
             for (int i = 0; i < cursors.Count; i++) {
@@ -157,7 +157,7 @@ namespace Editor2D
 
 
             for (int i = 0; i < cursors.Count; i++) {
-                if (!cursors[i].pinned || mode != Mode.NORMAL) {
+                if (!cursors[i].pinned || mode != Mode.Normal) {
                     cursors[i] = new Cursor() {
                         position = cursors[i].position + offset,
                         pinned = false
@@ -168,7 +168,7 @@ namespace Editor2D
                     continue; // Empty selection
 
                 switch (mode) {
-                    case Mode.GRAB: Move(selection[i], offset); break;
+                    case Mode.Grab: Move(selection[i], offset); break;
                 }
             }
         }
@@ -222,7 +222,7 @@ namespace Editor2D
 
             if (entity)
                 // Inactive entities can't be selected
-                return entity.active ? entity : null;
+                return entity.activeSelf ? entity : null;
 
             return entity;
         }
@@ -254,16 +254,16 @@ namespace Editor2D
         }
 
         internal void Revert(Undo.Frame frame) {
-            mode = Mode.NORMAL;
+            mode = Mode.Normal;
             layer = frame.layer;
 
             foreach (var state in frame.states) {
-                if (state.entity.active && !state.alive) {
+                if (state.entity.activeSelf && !state.alive) {
                     Kill(state.entity);
                     continue;
                 }
 
-                if (!state.entity.active && state.alive) {
+                if (!state.entity.activeSelf && state.alive) {
                     Revive(state.entity);
                     continue;
                 }
@@ -326,12 +326,12 @@ namespace Editor2D
 
         void Kill(GameObject entity) {
             if (!entity) return;
-            entity.active = false;
+            entity.SetActive(false);
             deletion_pool.Add(entity);
         }
 
         void Revive(GameObject entity) {
-            entity.active = true;
+            entity.SetActive(true);
             deletion_pool.Remove(entity);
             var other = Select(entity.transform.position);
             if (other && other != entity) {

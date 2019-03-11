@@ -10,10 +10,10 @@ namespace Editor2D
         [Serializable]
         public enum Modifier
         {
-            NONE,
-            CONTROL,
-            SHIFT,
-            ALT
+            None,
+            Control,
+            Shift,
+            Alt
         }
 
         [Serializable]
@@ -31,7 +31,7 @@ namespace Editor2D
         }
 
         static KeyCode[] valid_keys = (KeyCode[])Enum.GetValues(typeof(KeyCode));
-        static KeyBinding null_key  = new KeyBinding(Modifier.NONE, KeyCode.None, Command.NOP);
+        static KeyBinding null_key  = new KeyBinding(Modifier.None, KeyCode.None, Command.Nop);
 
         [Tooltip("How long a key must be pressed for before it is registered as being held down.")]
         [SerializeField] float LongPressDelay = 0.2f;
@@ -41,46 +41,44 @@ namespace Editor2D
 
         [SerializeField]
         KeyBinding[] KeyBindings = {
-            new KeyBinding(Modifier.NONE,    KeyCode.UpArrow,    Command.TRANSFORM_UP          ),
-            new KeyBinding(Modifier.NONE,    KeyCode.DownArrow,  Command.TRANSFORM_DOWN        ),
-            new KeyBinding(Modifier.NONE,    KeyCode.LeftArrow,  Command.TRANSFORM_LEFT        ),
-            new KeyBinding(Modifier.NONE,    KeyCode.RightArrow, Command.TRANSFORM_RIGHT       ),
-            new KeyBinding(Modifier.NONE,    KeyCode.I,          Command.TRANSFORM_UP          ),
-            new KeyBinding(Modifier.NONE,    KeyCode.K,          Command.TRANSFORM_DOWN        ),
-            new KeyBinding(Modifier.NONE,    KeyCode.J,          Command.TRANSFORM_LEFT        ),
-            new KeyBinding(Modifier.NONE,    KeyCode.L,          Command.TRANSFORM_RIGHT       ),
-            new KeyBinding(Modifier.NONE,    KeyCode.A,          Command.TOGGLE_SIMILAR        ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.A,          Command.TOGGLE_ALL            ),
-            new KeyBinding(Modifier.SHIFT,   KeyCode.S,          Command.TOGGLE_SCALE          ),
-            new KeyBinding(Modifier.NONE,    KeyCode.G,          Command.TOGGLE_GRAB           ),
-            new KeyBinding(Modifier.NONE,    KeyCode.B,          Command.TOGGLE_BOX_SELECT     ),
-            new KeyBinding(Modifier.NONE,    KeyCode.R,          Command.TOGGLE_ROTATE         ),
-            new KeyBinding(Modifier.NONE,    KeyCode.P,          Command.TOGGLE_PALETTE        ),
-            new KeyBinding(Modifier.SHIFT,   KeyCode.S,          Command.TOGGLE_SCALE          ),
-            new KeyBinding(Modifier.NONE,    KeyCode.S,          Command.SELECT_ITEM           ),
-            new KeyBinding(Modifier.NONE,    KeyCode.Escape,     Command.NORMAL_MODE           ),
-            new KeyBinding(Modifier.NONE,    KeyCode.C,          Command.CLONE                 ),
-            new KeyBinding(Modifier.NONE,    KeyCode.W,          Command.WRITE                 ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.X,          Command.CUT                   ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.C,          Command.COPY                  ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.V,          Command.PASTE                 ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.Z,          Command.UNDO                  ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.Y,          Command.REDO                  ),
-            new KeyBinding(Modifier.NONE,    KeyCode.X,          Command.DELETE                ),
-            new KeyBinding(Modifier.SHIFT,   KeyCode.F,          Command.FOCUS_VIEW            ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.N,          Command.NEW_LAYER             ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.RightArrow, Command.NEXT_MODEL            ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.LeftArrow,  Command.PREVIOUS_MODEL        ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.UpArrow,    Command.NEXT_LAYER            ),
-            new KeyBinding(Modifier.CONTROL, KeyCode.DownArrow,  Command.PREVIOUS_LAYER        ),
-            new KeyBinding(Modifier.SHIFT,   KeyCode.UpArrow,    Command.MOVE_NEXT_LAYER       ),
-            new KeyBinding(Modifier.SHIFT,   KeyCode.DownArrow,  Command.MOVE_PREVIOUS_LAYER   ),
+            new KeyBinding(Modifier.None,    KeyCode.UpArrow,    Command.Up              ),
+            new KeyBinding(Modifier.None,    KeyCode.DownArrow,  Command.Down            ),
+            new KeyBinding(Modifier.None,    KeyCode.LeftArrow,  Command.Left            ),
+            new KeyBinding(Modifier.None,    KeyCode.RightArrow, Command.Right           ),
+            new KeyBinding(Modifier.None,    KeyCode.I,          Command.Up              ),
+            new KeyBinding(Modifier.None,    KeyCode.K,          Command.Down            ),
+            new KeyBinding(Modifier.None,    KeyCode.J,          Command.Left            ),
+            new KeyBinding(Modifier.None,    KeyCode.L,          Command.Right           ),
+            new KeyBinding(Modifier.None,    KeyCode.R,          Command.Rotate          ),
+            new KeyBinding(Modifier.None,    KeyCode.S,          Command.SelectItem      ),
+            new KeyBinding(Modifier.Control, KeyCode.A,          Command.SelectSimilar   ),
+            new KeyBinding(Modifier.None,    KeyCode.A,          Command.SelectAll       ),
+            new KeyBinding(Modifier.Alt,     KeyCode.A,          Command.DeselectAll     ),
+            new KeyBinding(Modifier.Shift,   KeyCode.S,          Command.ToggleScale     ),
+            new KeyBinding(Modifier.None,    KeyCode.G,          Command.ToggleGrab      ),
+            new KeyBinding(Modifier.None,    KeyCode.B,          Command.ToggleBoxSelect ),
+            new KeyBinding(Modifier.None,    KeyCode.P,          Command.TogglePalette   ),
+            new KeyBinding(Modifier.None,    KeyCode.Escape,     Command.NormalMode      ),
+            new KeyBinding(Modifier.None,    KeyCode.C,          Command.Clone           ),
+            new KeyBinding(Modifier.None,    KeyCode.W,          Command.Write           ),
+            new KeyBinding(Modifier.None,    KeyCode.U,          Command.Undo            ),
+            new KeyBinding(Modifier.None,    KeyCode.E,          Command.Erase           ),
+            new KeyBinding(Modifier.Shift,   KeyCode.F,          Command.FocusView       ),
+            new KeyBinding(Modifier.Control, KeyCode.N,          Command.NewLayer        ),
+            new KeyBinding(Modifier.Control, KeyCode.RightArrow, Command.NextModel       ),
+            new KeyBinding(Modifier.Control, KeyCode.LeftArrow,  Command.PreviousModel   ),
+            new KeyBinding(Modifier.Control, KeyCode.UpArrow,    Command.NextLayer       ),
+            new KeyBinding(Modifier.Control, KeyCode.DownArrow,  Command.PreviousLayer   ),
+            new KeyBinding(Modifier.Control, KeyCode.L,          Command.NextModel       ),
+            new KeyBinding(Modifier.Control, KeyCode.J,          Command.PreviousModel   ),
+            new KeyBinding(Modifier.Control, KeyCode.I,          Command.NextLayer       ),
+            new KeyBinding(Modifier.Control, KeyCode.K,          Command.PreviousLayer   ),
         };
 
         float long_press_time;
         float retrigger_time;
         KeyBinding long_press_key;
-        Modifier modifier = Modifier.NONE;
+        Modifier modifier = Modifier.None;
 
         internal Command HandleKeyPress() {
             long_press_time += Time.deltaTime;
@@ -121,7 +119,7 @@ namespace Editor2D
                 }
             }
 
-            return Command.NOP;
+            return Command.Nop;
         }
 
         void HandleModifierUp(KeyCode key) {
@@ -132,7 +130,7 @@ namespace Editor2D
                 case KeyCode.RightShift:
                 case KeyCode.LeftAlt:
                 case KeyCode.RightAlt:
-                    modifier = Modifier.NONE;
+                    modifier = Modifier.None;
                     break;
             }
         }
@@ -141,17 +139,17 @@ namespace Editor2D
             switch (key) {
                 case KeyCode.LeftControl:
                 case KeyCode.RightControl:
-                    modifier = Modifier.CONTROL;
+                    modifier = Modifier.Control;
                     break;
 
                 case KeyCode.LeftShift:
                 case KeyCode.RightShift:
-                    modifier = Modifier.SHIFT;
+                    modifier = Modifier.Shift;
                     break;
 
                 case KeyCode.LeftAlt:
                 case KeyCode.RightAlt:
-                    modifier = Modifier.ALT;
+                    modifier = Modifier.Alt;
                     break;
             }
         }
@@ -165,7 +163,7 @@ namespace Editor2D
                     return key_binding.command;
                 }
             }
-            return Command.NOP;
+            return Command.Nop;
         }
     }
 }

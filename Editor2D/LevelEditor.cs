@@ -77,11 +77,11 @@ namespace Editor2D
             var command = keyboard.HandleKeyPress();
             Eval.Run(command, buffer);
 
-            if (command != Command.NOP) {
+            if (command != Command.Nop) {
                 Overlay.DrawCursors(buffer);
 
                 // @Performance: No need to redraw every time
-                if (buffer.mode == Buffer.Mode.PALETTE)
+                if (buffer.mode == Buffer.Mode.Palette)
                     Overlay.DrawPaletteScreen(buffer, Camera);
                 else
                     Overlay.DrawPaletteBar(buffer, Camera);
@@ -105,7 +105,7 @@ namespace Editor2D
 
         void OnApplicationQuit() {
             if (buffer != null) {
-                buffer.Finalize();
+                buffer.Free();
             }
         }
 

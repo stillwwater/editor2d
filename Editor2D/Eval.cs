@@ -4,64 +4,58 @@ namespace Editor2D
 {
     public enum Command
     {
-        TRANSFORM_UP,
-        TRANSFORM_DOWN,
-        TRANSFORM_LEFT,
-        TRANSFORM_RIGHT,
-        NEXT_MODEL,
-        PREVIOUS_MODEL,
-        NEXT_LAYER,
-        PREVIOUS_LAYER,
-        CLONE,
-        CUT,
-        COPY,
-        PASTE,
-        UNDO,
-        REDO,
-        DELETE,
-        WRITE,
-        MOVE_NEXT_LAYER,
-        MOVE_PREVIOUS_LAYER,
-        NORMAL_MODE,
-        FOCUS_VIEW,
-        TOGGLE_SIMILAR,
-        SELECT_ITEM,
-        TOGGLE_ALL,
-        TOGGLE_CAMERA,
-        TOGGLE_BOX_SELECT,
-        TOGGLE_WRITE,
-        TOGGLE_GRAB,
-        TOGGLE_ROTATE,
-        TOGGLE_SCALE,
-        TOGGLE_HIDE_LAYER,
-        TOGGLE_HIDE_OTHER_LAYERS,
-        TOGGLE_PALETTE,
-        NEW_LAYER,
-        NOP
+        Up,
+        Down,
+        Left,
+        Right,
+        Write,
+        Erase,
+        Clone,
+        Rotate,
+        Flip,
+        Undo,
+        NormalMode,
+        FocusView,
+        SelectSimilar,
+        SelectItem,
+        SelectAll,
+        DeselectAll,
+        ToggleCamera,
+        ToggleBoxSelect,
+        ToggleWrite,
+        ToggleGrab,
+        ToggleScale,
+        TogglePalette,
+        NextModel,
+        PreviousModel,
+        NextLayer,
+        PreviousLayer,
+        NewLayer,
+        Nop
     }
 
     public static class Eval
     {
         internal static void Run(Command cmd, Buffer buffer) {
             switch (cmd) {
-                case Command.NOP: break;
-                case Command.TRANSFORM_UP:
+                case Command.Nop: break;
+                case Command.Up:
                     HandleTransform(buffer, Vector2.up);
                     break;
 
-                case Command.TRANSFORM_DOWN:
+                case Command.Down:
                     HandleTransform(buffer, Vector2.down);
                     break;
 
-                case Command.TRANSFORM_LEFT:
+                case Command.Left:
                     HandleTransform(buffer, Vector2.left);
                     break;
 
-                case Command.TRANSFORM_RIGHT:
+                case Command.Right:
                     HandleTransform(buffer, Vector2.right);
                     break;
 
-                case Command.NEXT_LAYER:
+                case Command.NextLayer:
                     if (buffer.layer >= buffer.chunk.layers.Count - 1) {
                         buffer.layer = 0;
                         break;
@@ -69,7 +63,7 @@ namespace Editor2D
                     buffer.layer++;
                     break;
 
-                case Command.PREVIOUS_LAYER:
+                case Command.PreviousLayer:
                     if (buffer.layer <= 0) {
                         buffer.layer = buffer.chunk.layers.Count - 1;
                         break;
@@ -77,70 +71,71 @@ namespace Editor2D
                     buffer.layer--;
                     break;
 
-                case Command.NEW_LAYER:
+                case Command.NewLayer:
                     ChunkUtil.Realloc(ref buffer.chunk, 1);
                     buffer.layer = buffer.chunk.layers.Count - 1;
                     break;
 
-                case Command.TOGGLE_GRAB:
-                    buffer.SwitchMode(Buffer.Mode.GRAB);
+                case Command.ToggleGrab:
+                    buffer.SwitchMode(Buffer.Mode.Grab);
                     break;
 
-                case Command.NORMAL_MODE:
-                    buffer.SwitchMode(Buffer.Mode.NORMAL);
+                case Command.NormalMode:
+                    buffer.SwitchMode(Buffer.Mode.Normal);
                     break;
 
-                case Command.NEXT_MODEL:
+                case Command.NextModel:
                     if (buffer.palette_index < buffer.palette.Length - 1) {
                         buffer.palette_index++;
                     }
                     break;
 
-                case Command.PREVIOUS_MODEL:
+                case Command.PreviousModel:
                     if (buffer.palette_index > 0)
                         buffer.palette_index--;
                     break;
 
-                case Command.WRITE:
+                case Command.Write:
                     buffer.CreateFromPalette(buffer.palette_index);
                     break;
 
-                case Command.DELETE:
-                    buffer.Delete();
+                case Command.Erase:
+                    buffer.Erase();
                     break;
 
-                case Command.SELECT_ITEM:
-                    if (buffer.mode != Buffer.Mode.NORMAL) {
-                        buffer.SwitchMode(Buffer.Mode.NORMAL);
+                case Command.SelectItem:
+                    if (buffer.mode != Buffer.Mode.Normal) {
+                        buffer.SwitchMode(Buffer.Mode.Normal);
                     }
                     buffer.PinCursor();
                     break;
 
-                case Command.TOGGLE_ALL:
-                    if (buffer.cursors.Count == 1)
-                        buffer.SelectAllInLayer();
-                    else
-                        buffer.DeselectAll();
+                case Command.SelectAll:
+                    buffer.SelectAllInLayer();
                     break;
 
-                case Command.UNDO:
+                case Command.DeselectAll:
+                    buffer.DeselectAll();
+                    break;
+
+                case Command.Undo:
                     if (buffer.undo.PopFrame(out Undo.Frame frame)) {
                         buffer.Revert(frame);
                     }
                     break;
 
-                case Command.FOCUS_VIEW:
+                case Command.FocusView:
                     buffer.FocusAtCursors();
                     break;
 
-                case Command.TOGGLE_PALETTE:
-                    buffer.SwitchMode(Buffer.Mode.PALETTE);
+                case Command.TogglePalette:
+                    buffer.SwitchMode(Buffer.Mode.Palette);
                     break;
             }
         }
 
         static void HandleTransform(Buffer buffer, Vector2 direction) {
-            if (buffer.mode == Buffer.Mode.PALETTE) {
+            if (buffer.mode == Buffer.Mode.Palette) {
                 int i = Overlay.MapToPaletteIndex(buffer, direction);
                 buffer.palette_index = i;
                 return;
