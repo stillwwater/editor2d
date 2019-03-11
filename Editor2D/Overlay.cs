@@ -197,6 +197,12 @@ namespace Editor2D
 
             text.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
 
+            if (buffer.log != null) {
+                text.bar_center.text = buffer.log;
+                buffer.log = null; // Don't show log next time
+                return;
+            }
+
             switch (buffer.mode) {
                 case Buffer.Mode.Normal:
                     text.bar_center.text = "";

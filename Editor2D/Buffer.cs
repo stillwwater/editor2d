@@ -19,7 +19,7 @@ namespace Editor2D
             Scale,
             Box,
             Palette,
-            CAMERA
+            Camera
         }
 
         internal readonly GameObject[] palette;
@@ -29,6 +29,7 @@ namespace Editor2D
         internal int layer;
         internal int palette_index;
         internal List<Cursor> cursors;
+        internal string log;
         internal readonly Undo undo;
 
         int entityid;
@@ -273,6 +274,8 @@ namespace Editor2D
                 state.entity.transform.localScale = state.scale;
                 state.entity.transform.rotation = state.rotation;
             }
+
+            log = "Undone some changes!";
         }
 
         internal void FocusAtCursors() {
