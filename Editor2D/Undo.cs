@@ -19,6 +19,7 @@ namespace Editor2D
         {
             internal int layer;
             internal List<State> states;
+            internal DateTime time;
         }
 
         const int UNDO_SIZE = 1024;
@@ -59,7 +60,8 @@ namespace Editor2D
 
             var frame = new Frame() {
                 layer  = layer,
-                states = new List<State>()
+                states = new List<State>(),
+                time   = DateTime.Now
             };
             stack[stack_position] = frame;
         }
@@ -67,11 +69,19 @@ namespace Editor2D
         internal bool PopFrame(out Frame frame) {
             if (stack_position < 0) {
                 frame = new Frame();
-                Debug.Log("[e2d] No changes left to undo.");
                 return false;
             }
             frame = stack[stack_position--];
             return true;
+        }
+
+        internal string TimeDelta(Frame frame) {
+            int seconds = (int)((DateTime.Now - frame.time).TotalSeconds);
+            if (seconds < 100) {
+                string s = seconds == 1 ? "" : "s";
+                return string.Format("{0} second{1} ago", seconds, s);
+            }
+            return frame.time.ToString("HH:mm:ss");
         }
     }
 }

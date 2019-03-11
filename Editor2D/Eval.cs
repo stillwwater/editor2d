@@ -121,7 +121,9 @@ namespace Editor2D
                 case Command.Undo:
                     if (buffer.undo.PopFrame(out Undo.Frame frame)) {
                         buffer.Revert(frame);
+                        break;
                     }
+                    buffer.log = "Already at oldest change";
                     break;
 
                 case Command.FocusView:

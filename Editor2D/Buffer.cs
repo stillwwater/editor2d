@@ -275,7 +275,11 @@ namespace Editor2D
                 state.entity.transform.rotation = state.rotation;
             }
 
-            log = "Undone some changes!";
+            // Give some info on how many actions were undone and how old
+            // the changes are.
+            string time = undo.TimeDelta(frame);
+            string s = frame.states.Count == 1 ? "" : "s";
+            log = string.Format("{0} change{1}; {2}", frame.states.Count, s, time);
         }
 
         internal void FocusAtCursors() {
