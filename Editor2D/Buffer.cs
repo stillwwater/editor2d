@@ -156,7 +156,6 @@ namespace Editor2D
                 new Vector3(max_x, max_y),
                 offset);
 
-
             for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.Normal) {
                     cursors[i] = new Cursor() {
@@ -165,7 +164,7 @@ namespace Editor2D
                     };
                 }
 
-                if (!selection[i] || i >= selection.Length)
+                if (i >= selection.Length || !selection[i])
                     continue; // Empty selection
 
                 switch (mode) {
@@ -210,7 +209,9 @@ namespace Editor2D
             }
 
             cursors.Add(last);
-            cursors[cursors.Count - 2] = new Cursor() { position = last.position, pinned = true };
+            cursors[cursors.Count - 2] = new Cursor() {
+                position = last.position, pinned = true
+            };
         }
 
         /// Select entity at a grid position
@@ -219,7 +220,7 @@ namespace Editor2D
             var entity = chunk.layers[layer].grid[grid_pos.x, grid_pos.y];
 
             // Temp is checked first
-            entity = temp ? temp : entity;
+            entity = temp && temp.activeSelf ? temp : entity;
 
             if (entity)
                 // Inactive entities can't be selected
