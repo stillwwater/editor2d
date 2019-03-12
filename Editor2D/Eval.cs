@@ -84,6 +84,10 @@ namespace Editor2D
                     buffer.SwitchMode(Buffer.Mode.Normal);
                     break;
 
+                case Command.ToggleBoxSelect:
+                    buffer.SwitchMode(Buffer.Mode.Box);
+                    break;
+
                 case Command.NextModel:
                     if (buffer.palette_index < buffer.palette.Length - 1) {
                         buffer.palette_index++;

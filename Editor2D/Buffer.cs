@@ -36,6 +36,7 @@ namespace Editor2D
         Camera view;
         GameObject[] selection = new GameObject[16];
         List<GameObject> deletion_pool = new List<GameObject>();
+        Rect selection_rect;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
             this.view = view;
@@ -73,6 +74,17 @@ namespace Editor2D
                         undo.PopFrame(out _);
                         return;
                     }
+                    break;
+
+                case Mode.Box:
+                    if (mode == Mode.Box) {
+                        mode = Mode.Normal;
+                        return;
+                    }
+
+                    DeselectAll();
+                    Vector3 last = cursors[0].position;
+                    selection_rect = new Rect(last.x, last.y, 1, 1);
                     break;
 
                 case Mode.Palette:
@@ -156,6 +168,13 @@ namespace Editor2D
                 new Vector3(max_x, max_y),
                 offset);
 
+            if (mode == Mode.Box) {
+                selection_rect.width  += offset.x;
+                selection_rect.height += offset.y;
+                SelectInRect(selection_rect);
+                return;
+            }
+
             for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.Normal) {
                     cursors[i] = new Cursor() {
@@ -173,6 +192,30 @@ namespace Editor2D
             }
         }
 
+        internal void SelectInRect(Rect area) {
+            int width  = (int)(area.width / chunk.cell_scale);
+            int height = (int)(area.height / chunk.cell_scale);
+
+            if (width <= 0 || height <= 0) {
+                // @Temporary: Currently don't support negative areas
+                SwitchMode(Mode.Normal);
+                return;
+            }
+            cursors.Clear();
+
+            for (int i = 0; i < width; i++) {
+                for (int j = 0; j < height; j++) {
+                    float x = (i + area.x) * chunk.cell_scale;
+                    float y = (j + area.y) * chunk.cell_scale;
+
+                    cursors.Add(new Cursor() {
+                        position = new Vector3(x, y),
+                        pinned = false
+                    });
+                }
+            }
+        }
+
         internal void SelectAllInLayer() {
             cursors.Clear();
             for (int i = 0; i < chunk.layers[layer].grid.GetLength(0); i++) {
@@ -180,6 +223,7 @@ namespace Editor2D
                     if (!Select(new Vector2Int(i, j))) continue;
                     float x = (i + chunk.bounds.x) * chunk.cell_scale;
                     float y = (j + chunk.bounds.y) * chunk.cell_scale;
+
                     cursors.Add(new Cursor() {
                         position = new Vector3(x, y),
                         pinned = false
