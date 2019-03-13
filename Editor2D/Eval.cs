@@ -114,6 +114,10 @@ namespace Editor2D
                     buffer.PinCursor();
                     break;
 
+                case Command.SelectSimilar:
+                    buffer.SelectSimilar();
+                    break;
+
                 case Command.SelectAll:
                     buffer.SelectAllInLayer();
                     break;

@@ -125,6 +125,19 @@ namespace Editor2D
             GridRestoreAtCursors(cursors);
         }
 
+        /// Find palette from which this entity was created.
+        /// Uses string compare, so the child must share a
+        /// common name with the parent (default for entities
+        /// created using Buffer.CreateFromPalette).
+        internal GameObject FindParent(GameObject entity) {
+            foreach (var parent in palette) {
+                if (entity.name.Contains(parent.name))
+                    return parent;
+            }
+
+            return null;
+        }
+
         internal void Erase() {
             undo.PushFrame(layer);
 
@@ -192,12 +205,35 @@ namespace Editor2D
             }
         }
 
+        ///
+        /// Select similar entities that are next to each other
+        /// under the cursor.
+        ///
+        internal void SelectSimilar() {
+            // Use last placed cursor
+            Vector3 anchor = cursors[cursors.Count - 1].position;
+            var entity = Select(anchor);
+
+            if (!entity)
+                return;
+
+            cursors.Clear();
+            var parent = FindParent(entity);
+
+            if (!parent) {
+                Debug.LogWarningFormat("[e2d] No parent for {0}", entity.name);
+                return;
+            }
+
+            SelectFloodFill(anchor, parent.name);
+        }
+
         internal void SelectInRect(Rect area) {
             int width  = (int)(area.width / chunk.cell_scale);
             int height = (int)(area.height / chunk.cell_scale);
 
             if (width <= 0 || height <= 0) {
-                // @Temporary: Currently don't support negative areas
+                // @Todo: Add support negative areas
                 SwitchMode(Mode.Normal);
                 return;
             }
@@ -207,11 +243,7 @@ namespace Editor2D
                 for (int j = 0; j < height; j++) {
                     float x = (i + area.x) * chunk.cell_scale;
                     float y = (j + area.y) * chunk.cell_scale;
-
-                    cursors.Add(new Cursor() {
-                        position = new Vector3(x, y),
-                        pinned = false
-                    });
+                    CreateCursor(new Vector3(x, y));
                 }
             }
         }
@@ -223,11 +255,7 @@ namespace Editor2D
                     if (!Select(new Vector2Int(i, j))) continue;
                     float x = (i + chunk.bounds.x) * chunk.cell_scale;
                     float y = (j + chunk.bounds.y) * chunk.cell_scale;
-
-                    cursors.Add(new Cursor() {
-                        position = new Vector3(x, y),
-                        pinned = false
-                    });
+                    CreateCursor(new Vector3(x, y));
                 }
             }
         }
@@ -347,6 +375,21 @@ namespace Editor2D
             view.transform.position = new Vector3(mid.x, mid.y, z);
         }
 
+        bool HasCursor(Vector3 position) {
+            foreach (var cursor in cursors) {
+                if (cursor.position == position)
+                    return true;
+            }
+            return false;
+        }
+
+        void CreateCursor(Vector3 position) {
+            cursors.Add(new Cursor() {
+                position = position,
+                pinned   = false
+            });
+        }
+
         bool SelectAtCursors(ref GameObject[] selection) {
             if (selection.Length < cursors.Count) {
                 // Reallocate selection buffer
@@ -374,6 +417,30 @@ namespace Editor2D
             }
 
             return has_selection;
+        }
+
+        void SelectFloodFill(Vector3 anchor, string match) {
+            var nodes = new Stack<Vector3>();
+            nodes.Push(anchor);
+
+            while (nodes.Count > 0) {
+                anchor = nodes.Pop();
+                var entity = Select(anchor);
+
+                if (!entity || !entity.name.Contains(match))
+                    continue;
+
+                // @Performance
+                if (HasCursor(anchor))
+                    // Already visited
+                    continue;
+
+                CreateCursor(anchor);
+                nodes.Push(anchor + Vector3.up);
+                nodes.Push(anchor + Vector3.right);
+                nodes.Push(anchor + Vector3.down);
+                nodes.Push(anchor + Vector3.left);
+            }
         }
 
         void Kill(GameObject entity) {
