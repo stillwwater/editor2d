@@ -4,12 +4,6 @@ using UnityEngine;
 
 namespace Editor2D
 {
-    internal struct Cursor
-    {
-        internal Vector3 position;
-        internal bool pinned;
-    }
-
     public class Buffer
     {
         public enum Mode
@@ -28,7 +22,7 @@ namespace Editor2D
         internal Mode mode;
         internal int layer;
         internal int palette_index;
-        internal List<Cursor> cursors;
+        internal Cursors cursors;
         internal string log;
         internal readonly Undo undo;
 
@@ -39,12 +33,11 @@ namespace Editor2D
         Rect selection_rect;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
-            this.view = view;
-            this.chunk = chunk;
+            this.view    = view;
+            this.chunk   = chunk;
             this.palette = palette;
             undo = new Undo();
-            cursors = new List<Cursor>(1);
-            cursors.Add(new Cursor() { position = Vector3.zero, pinned = false } );
+            cursors = new Cursors(chunk.bounds, chunk.cell_scale);
         }
 
         internal void Free() {
@@ -72,6 +65,8 @@ namespace Editor2D
                     undo.PushFrame(layer);
                     if (!SelectAtCursors(ref selection)) {
                         undo.PopFrame(out _);
+                        if (mode != Mode.Box)
+                            DeselectAll();
                         return;
                     }
                     break;
@@ -192,7 +187,7 @@ namespace Editor2D
                 if (!cursors[i].pinned || mode != Mode.Normal) {
                     cursors[i] = new Cursor() {
                         position = cursors[i].position + offset,
-                        pinned = false
+                        pinned   = false
                     };
                 }
 
@@ -201,6 +196,7 @@ namespace Editor2D
 
                 switch (mode) {
                     case Mode.Grab: Move(selection[i], offset); break;
+                    // @Todo: Scale...
                 }
             }
         }
@@ -243,7 +239,7 @@ namespace Editor2D
                 for (int j = 0; j < height; j++) {
                     float x = (i + area.x) * chunk.cell_scale;
                     float y = (j + area.y) * chunk.cell_scale;
-                    CreateCursor(new Vector3(x, y));
+                    cursors.Add(new Vector3(x, y));
                 }
             }
         }
@@ -255,15 +251,19 @@ namespace Editor2D
                     if (!Select(new Vector2Int(i, j))) continue;
                     float x = (i + chunk.bounds.x) * chunk.cell_scale;
                     float y = (j + chunk.bounds.y) * chunk.cell_scale;
-                    CreateCursor(new Vector3(x, y));
+                    cursors.Add(new Vector3(x, y));
                 }
             }
         }
 
         internal void DeselectAll() {
             if (cursors.Count == 0) return;
-            cursors[0] = cursors[cursors.Count - 1];
-            cursors.RemoveRange(0, cursors.Count - 1);
+            Vector3 position = cursors[cursors.Count - 1].position;
+            cursors.Clear();
+            cursors.Add(new Cursor() {
+                position = position,
+                pinned   = false
+            });
         }
 
         internal void PinCursor() {
@@ -359,6 +359,7 @@ namespace Editor2D
             float min_x = Mathf.Infinity, max_x = Mathf.NegativeInfinity;
             float min_y = Mathf.Infinity, max_y = Mathf.NegativeInfinity;
 
+            // Find selection area
             for (int i = 0; i < cursors.Count; i++) {
                 Vector3 position = cursors[i].position;
                 min_x = Mathf.Min(min_x, position.x);
@@ -371,23 +372,9 @@ namespace Editor2D
             Vector2 max = new Vector2(max_x, max_y);
             Vector2 mid = (min + max) / 2;
 
+            // Focus view on the center of the selected region
             float z = view.transform.position.z;
             view.transform.position = new Vector3(mid.x, mid.y, z);
-        }
-
-        bool HasCursor(Vector3 position) {
-            foreach (var cursor in cursors) {
-                if (cursor.position == position)
-                    return true;
-            }
-            return false;
-        }
-
-        void CreateCursor(Vector3 position) {
-            cursors.Add(new Cursor() {
-                position = position,
-                pinned   = false
-            });
         }
 
         bool SelectAtCursors(ref GameObject[] selection) {
@@ -402,12 +389,9 @@ namespace Editor2D
                 Vector3 position = cursors[i].position;
 
                 // Remove overlapping cursors
-                for (int j = 0; j < cursors.Count; j++) {
-                    if (j != i && position == cursors[j].position) {
-                        cursors.RemoveAt(j);
-                        continue;
-                    }
-                }
+                if (cursors.IsDuplicate(position))
+                    cursors.RemoveDuplicate(position, i);
+
                 selection[i] = Select(position);
 
                 if (selection[i]) {
@@ -430,12 +414,11 @@ namespace Editor2D
                 if (!entity || !entity.name.Contains(match))
                     continue;
 
-                // @Performance
-                if (HasCursor(anchor))
+                if (cursors.Contains(anchor))
                     // Already visited
                     continue;
 
-                CreateCursor(anchor);
+                cursors.Add(anchor);
                 nodes.Push(anchor + Vector3.up);
                 nodes.Push(anchor + Vector3.right);
                 nodes.Push(anchor + Vector3.down);
@@ -519,7 +502,7 @@ namespace Editor2D
             }
         }
 
-        void GridRestoreAtCursors(List<Cursor> cursors) {
+        void GridRestoreAtCursors(Cursors cursors) {
             for (int i = 0; i < cursors.Count; i++) {
                 GridRestore(cursors[i].position);
             }
