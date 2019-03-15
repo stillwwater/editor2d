@@ -93,8 +93,13 @@ namespace Editor2D
         }
 
         internal void CreateFromPalette(int index) {
+            if (palette.Length == 0) {
+                Debug.LogWarning("[e2d] No palette assets assigned.");
+                return;
+            }
+
             if (index >= palette.Length || index < 0) {
-                Debug.LogErrorFormat("[e2d]: No palette entity at {0}", index);
+                Debug.LogErrorFormat("[e2d] No palette entity at {0}.", index);
                 return;
             }
             mode = Mode.Normal;
@@ -213,14 +218,14 @@ namespace Editor2D
             if (!entity)
                 return;
 
-            cursors.Clear();
             var parent = FindParent(entity);
 
             if (!parent) {
-                Debug.LogWarningFormat("[e2d] No parent for {0}", entity.name);
+                Debug.LogWarningFormat("[e2d] No parent for {0}.", entity.name);
                 return;
             }
 
+            cursors.Clear();
             SelectFloodFill(anchor, parent.name);
         }
 
