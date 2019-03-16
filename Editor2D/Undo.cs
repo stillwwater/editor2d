@@ -22,29 +22,11 @@ namespace Editor2D
             internal DateTime time;
         }
 
-        const int UNDO_SIZE = 1024;
-        readonly Frame[] stack = new Frame[UNDO_SIZE];
+        readonly Frame[] stack;
         int stack_position = -1;
 
-        ///
-        /// Register an entity state that can be reverted back
-        /// to in the future.
-        ///
-        internal void RegisterState(GameObject entity) {
-            if (!entity) return;
-
-            if (stack_position >= stack.Length || stack_position < 0) {
-                Debug.LogError("[e2d] Cannot register state. Missing undo frame.");
-                return;
-            }
-
-            stack[stack_position].states.Add(new State() {
-                entity   = entity,
-                position = entity.transform.position,
-                scale    = entity.transform.localScale,
-                rotation = entity.transform.rotation,
-                alive    = entity.activeSelf
-            });
+        internal Undo(int size = 256) {
+            stack = new Frame[size];
         }
 
         ///
@@ -67,12 +49,48 @@ namespace Editor2D
         }
 
         internal bool PopFrame(out Frame frame) {
-            if (stack_position < 0) {
+            if (stack_position < 0
+                || stack_position > stack.Length
+                || stack[stack_position].states == null) {
                 frame = new Frame();
                 return false;
             }
-            frame = stack[stack_position--];
+
+            frame = stack[stack_position];
+            stack[stack_position--].states = null;
+
+            if (stack_position < 0)
+                // Wrap around
+                stack_position = stack.Length - 1;
+
             return true;
+        }
+
+        ///
+        /// Register an entity state that can be reverted back
+        /// to in the future.
+        ///
+        internal void RegisterState(GameObject entity) {
+            if (!entity) return;
+
+            if (stack_position >= stack.Length || stack_position < 0) {
+                Debug.LogError("[e2d] Cannot register state. Missing undo frame.");
+                return;
+            }
+
+            stack[stack_position].states.Add(new State() {
+                entity   = entity,
+                position = entity.transform.position,
+                scale    = entity.transform.localScale,
+                rotation = entity.transform.rotation,
+                alive    = entity.activeSelf
+            });
+        }
+
+        internal void Clear() {
+            for (int i = 0; i < stack.Length; i++)
+                stack[i].states = null;
+            stack_position = -1;
         }
 
         internal string TimeDelta(Frame frame) {

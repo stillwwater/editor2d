@@ -47,6 +47,7 @@ namespace Editor2D
 
             Array.Resize(ref selection, 1);
             DeselectAll();
+            undo.Clear();
         }
 
         internal void SwitchMode(Mode new_mode) {
