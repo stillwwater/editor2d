@@ -35,24 +35,30 @@ namespace Editor2D
         [Tooltip("Prefabs that can be instantiated by the editor.")]
         [SerializeField] GameObject[] Palette  = null;
 
-        [Header("Theme")]
+        [Header("Font")]
         [SerializeField] Font Font             = null;
         [Tooltip("Font size multiplier")]
         [SerializeField] float FontScaling     = 2;
         [SerializeField] Color FontColor       = new Color(0, 0, 0, .8f);
 
+        [Header("Theme")]
         [SerializeField] GameObject T0Cursor     = null;
         [SerializeField] GameObject T1GridSquare = null;
         [SerializeField] GameObject T2GridActive = null;
         [SerializeField] GameObject T3Background = null;
 
-        [Range(2, 16)]
+        [Header("Preview")]
+        [SerializeField] Overlay.LowerGridDisplay PreviewPosition
+                            = Overlay.LowerGridDisplay.Center;
+
+        [Range(1, 16)]
+        [SerializeField] int PreviewWidth       = 4;
+
+        [Header("Palette Window")]
         [Tooltip("Width of the sprite selection panel.")]
         [SerializeField] int PaletteWidth      = 8;
-        [Range(2, 16)]
         [Tooltip("Height of the sprite selection panel.")]
         [SerializeField] int PaletteHeight     = 6;
-        [Range(0, 2)]
         [SerializeField] float PaletteBorder   = .4f;
 
         [Header("Input")]
@@ -84,15 +90,17 @@ namespace Editor2D
                 buffer = new Buffer(chunk, Palette, Camera);
 
                 var theme = new Overlay.Theme() {
-                    cursor       = T0Cursor,
-                    grid_square  = T1GridSquare,
-                    grid_active  = T2GridActive,
-                    background   = T3Background,
-                    border       = PaletteBorder,
-                    font         = Font,
-                    font_scaling = FontScaling,
-                    font_color   = FontColor,
-                    palette_area = new Vector2Int(PaletteWidth, PaletteHeight)
+                    cursor            = T0Cursor,
+                    grid_square       = T1GridSquare,
+                    grid_active       = T2GridActive,
+                    background        = T3Background,
+                    border            = PaletteBorder,
+                    font              = Font,
+                    font_scaling      = FontScaling,
+                    font_color        = FontColor,
+                    palette_area      = new Vector2Int(PaletteWidth, PaletteHeight),
+                    palette_display   = PreviewPosition,
+                    preview_width     = PreviewWidth
                 };
 
                 Overlay.Initialize(transform, theme, buffer.palette);

@@ -8,6 +8,14 @@ namespace Editor2D
 {
     internal static class Overlay
     {
+        internal enum LowerGridDisplay
+        {
+            Left,
+            Center,
+            Right,
+            Hidden
+        }
+
         internal struct Theme
         {
             internal GameObject cursor;
@@ -19,6 +27,8 @@ namespace Editor2D
             internal float font_scaling;
             internal Color font_color;
             internal Vector2Int palette_area;
+            internal LowerGridDisplay palette_display;
+            internal int preview_width;
         }
 
         struct Pool
@@ -38,8 +48,6 @@ namespace Editor2D
             internal Text bar_center;
         }
 
-        const int Palette_GRID_WIDTH = 10;
-
         static Transform parent;
         static TextInfo text;
         static Theme theme;
@@ -52,7 +60,7 @@ namespace Editor2D
             pool = new Pool() {
                 cursors = new List<GameObject>(),
                 palette_previews = new GameObject[palette.Length],
-                palette_grid = new SpriteRenderer[Palette_GRID_WIDTH],
+                palette_grid = new SpriteRenderer[theme.preview_width],
                 palette_grid_cursor = GameObject.Instantiate(theme.grid_active, parent),
                 background = GameObject.Instantiate(theme.background, parent)
             };
@@ -75,15 +83,39 @@ namespace Editor2D
             }
 
             pool.background.SetActive(false);
+            pool.palette_grid_cursor.SetActive(true);
+
+            if (theme.palette_display == LowerGridDisplay.Hidden) {
+                pool.palette_grid_cursor.SetActive(false);
+                return;
+            }
 
             for (int i = 0; i < pool.palette_grid.Length; i++) {
                 GameObject entity;
+                float x, y;
 
+                switch (theme.palette_display) {
+                    case LowerGridDisplay.Center:
+                        x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
+                        break;
+
+                    case LowerGridDisplay.Left:
+                        x = (i - screen_units.x) + 1f + camera_pos.x;
+                        break;
+
+                    case LowerGridDisplay.Right:
+                        x = (i+screen_units.x - pool.palette_grid.Length) + camera_pos.x;
+                        break;
+
+                    default:
+                        Debug.LogError("[e2d] FATAL: Condition check failed.");
+                        return;
+                }
+
+                y = (1 - screen_units.y) + camera_pos.y;
                 entity = pool.palette_grid[i].gameObject;
                 entity.gameObject.SetActive(true);
 
-                float x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
-                float y = (1 - screen_units.y) + camera_pos.y;
                 entity.transform.position = new Vector3(x, y);
 
                 if (i == buffer.palette_index % pool.palette_grid.Length) {
@@ -307,7 +339,7 @@ namespace Editor2D
                 CopyComponent<MeshFilter>(entity, palette[i]);
 
                 if (!CopyComponent<MeshRenderer>(entity, palette[i]))
-                    Debug.LogWarningFormat("[e2d] Palette {0} has no renderer", entity.name);
+                    Debug.LogWarningFormat("[e2d] Palette {0} has no renderer.", entity.name);
 
                 pool.palette_previews[i] = entity;
             }
