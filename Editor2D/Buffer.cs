@@ -53,6 +53,8 @@ namespace Editor2D
         internal void SwitchMode(Mode new_mode) {
             switch (new_mode) {
                 case Mode.Normal:
+                    if (mode == Mode.Grab)
+                        GridRestoreAtCursors(cursors);
                     DeselectAll();
                     break;
 
