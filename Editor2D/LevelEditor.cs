@@ -6,31 +6,39 @@ namespace Editor2D
     public class LevelEditor : MonoBehaviour
     {
         [Header("Camera")]
+        [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
         [SerializeField] Camera Camera   = null;
 
         [Header("GameObject Lookup")]
+        [Tooltip("Determines which game objects are included in the editor grid.")]
         [SerializeField] Filter Filter   = Filter.HAS_SPRITE_RENDERER;
+        [Tooltip("Determines which editor layer the game object is placed in.")]
         [SerializeField] Sorting Sorting = Sorting.ORDER_IN_LAYER;
 
         [Header("Grid")]
+        [Tooltip("Smallest editable area in world units.")]
         [SerializeField] Rect MinArea    = new Rect(-8, -8, 16, 16);
         [Space(4)]
+        [Tooltip("Largest editable area in world units.")]
         [SerializeField] Rect MaxArea    = new Rect(-256, -256, 512, 512);
         [Space(8)]
+        [Tooltip("Tile size (scale) in world units.")]
         [SerializeField] float TileSize  = 1;
 
         [Header("Flags")]
         [Tooltip("Destroy deleted entities and clear undo history when closing.")]
         [SerializeField] bool DestroyOnClose   = false;
+        [Tooltip("Open editor2d on startup.")]
         [SerializeField] bool OpenOnStart      = false;
 
         [Header("Tile Set")]
+        [Tooltip("Prefabs that can be instantiated by the editor.")]
         [SerializeField] GameObject[] Palette  = null;
 
         [Header("Theme")]
         [SerializeField] Font Font             = null;
         [Tooltip("Font size multiplier")]
-        [SerializeField] float FontScaling     = 1;
+        [SerializeField] float FontScaling     = 2;
         [SerializeField] Color FontColor       = new Color(0, 0, 0, .8f);
 
         [SerializeField] GameObject T0Cursor     = null;
@@ -38,11 +46,11 @@ namespace Editor2D
         [SerializeField] GameObject T2GridActive = null;
         [SerializeField] GameObject T3Background = null;
 
-        [Tooltip("Width of the larger prefab selection screen.")]
         [Range(2, 16)]
+        [Tooltip("Width of the sprite selection panel.")]
         [SerializeField] int PaletteWidth      = 8;
-        [Tooltip("Height of the larger prefab selection screen.")]
         [Range(2, 16)]
+        [Tooltip("Height of the sprite selection panel.")]
         [SerializeField] int PaletteHeight     = 6;
         [Range(0, 2)]
         [SerializeField] float PaletteBorder   = .4f;
@@ -54,8 +62,8 @@ namespace Editor2D
         bool running;
 
         void Start() {
-            if (OpenOnStart) {
-                running = OpenEditor();
+            if (OpenOnStart && OpenEditor()) {
+                running = true;
                 Overlay.DrawCursors(buffer);
                 Overlay.DrawPaletteScreen(buffer, Camera);
                 Overlay.DrawPaletteBar(buffer, Camera);
@@ -94,7 +102,6 @@ namespace Editor2D
 
         bool CloseEditor() {
             if (buffer == null) return false;
-            // @Todo: Clear undo
             if (DestroyOnClose) buffer.Free();
             Overlay.ClearScreen();
             return true;
