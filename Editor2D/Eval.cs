@@ -4,6 +4,7 @@ namespace Editor2D
 {
     public enum Command
     {
+        ToggleOpen,
         Up,
         Down,
         Left,

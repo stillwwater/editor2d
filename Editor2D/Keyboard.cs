@@ -41,6 +41,7 @@ namespace Editor2D
 
         [SerializeField]
         KeyBinding[] KeyBindings = {
+            new KeyBinding(Modifier.None,    KeyCode.F2,         Command.ToggleOpen      ),
             new KeyBinding(Modifier.None,    KeyCode.UpArrow,    Command.Up              ),
             new KeyBinding(Modifier.None,    KeyCode.DownArrow,  Command.Down            ),
             new KeyBinding(Modifier.None,    KeyCode.LeftArrow,  Command.Left            ),

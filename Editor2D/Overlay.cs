@@ -126,7 +126,6 @@ namespace Editor2D
             int length = Math.Min(buffer.palette.Length, width*height + start);
 
             pool.background.SetActive(true);
-
             {
                 var bg = pool.background.transform;
                 bg.position   = new Vector3(camera_pos.x, camera_pos.y);
@@ -182,7 +181,7 @@ namespace Editor2D
             string name = "";
             var selected = buffer.Select(cursor);
 
-            if (selected) {
+            if (selected && buffer.log == null) {
                 if (buffer.cursors.Count > 1)
                     name = selected.name + " etc.";
                 else
@@ -203,6 +202,9 @@ namespace Editor2D
                 return;
             }
 
+            if (!text.canvas.gameObject.activeSelf)
+                text.canvas.gameObject.SetActive(true);
+
             switch (buffer.mode) {
                 case Buffer.Mode.Normal:
                     text.bar_center.text = "";
@@ -220,6 +222,21 @@ namespace Editor2D
                     text.bar_center.text = string.Format("~{0}~", mode);
                     break;
             }
+        }
+
+        internal static void ClearScreen() {
+            foreach (var p in pool.palette_previews)
+                p.SetActive(false);
+
+            foreach (var sp in pool.palette_grid)
+                sp.gameObject.SetActive(false);
+
+            foreach (var c in pool.cursors)
+                c.SetActive(false);
+
+            pool.background.SetActive(false);
+            pool.palette_grid_cursor.SetActive(false);
+            text.canvas.gameObject.SetActive(false);
         }
 
         ///

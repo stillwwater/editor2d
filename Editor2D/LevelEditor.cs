@@ -19,6 +19,11 @@ namespace Editor2D
         [Space(8)]
         [SerializeField] float TileSize  = 1;
 
+        [Header("Flags")]
+        [Tooltip("Destroy deleted entities and clear undo history when closing.")]
+        [SerializeField] bool DestroyOnClose   = false;
+        [SerializeField] bool OpenOnStart      = false;
+
         [Header("Tile Set")]
         [SerializeField] GameObject[] Palette  = null;
 
@@ -46,48 +51,92 @@ namespace Editor2D
         [SerializeField] Keyboard keyboard;
 
         Buffer buffer;
+        bool running;
 
         void Start() {
+            if (OpenOnStart) {
+                running = OpenEditor();
+                Overlay.DrawCursors(buffer);
+                Overlay.DrawPaletteScreen(buffer, Camera);
+                Overlay.DrawPaletteBar(buffer, Camera);
+                Overlay.DrawText(buffer);
+            }
+        }
+
+        bool OpenEditor() {
+            if (!CanOpen()) {
+                Debug.LogError("[e2d] Failed to open editor.");
+                return false;
+            }
+
             if (!Camera) Camera = Camera.main;
 
-            // @Todo: Don't allocate on Start(), only on first editor open
-            var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
-            buffer = new Buffer(chunk, Palette, Camera);
+            if (buffer == null) {
+                var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
+                buffer = new Buffer(chunk, Palette, Camera);
 
-            var theme = new Overlay.Theme() {
-                cursor       = T0Cursor,
-                grid_square  = T1GridSquare,
-                grid_active  = T2GridActive,
-                background   = T3Background,
-                border       = PaletteBorder,
-                font         = Font,
-                font_scaling = FontScaling,
-                font_color   = FontColor,
-                palette_area = new Vector2Int(PaletteWidth, PaletteHeight)
-            };
+                var theme = new Overlay.Theme() {
+                    cursor       = T0Cursor,
+                    grid_square  = T1GridSquare,
+                    grid_active  = T2GridActive,
+                    background   = T3Background,
+                    border       = PaletteBorder,
+                    font         = Font,
+                    font_scaling = FontScaling,
+                    font_color   = FontColor,
+                    palette_area = new Vector2Int(PaletteWidth, PaletteHeight)
+                };
 
-            Overlay.Initialize(transform, theme, buffer.palette);
-            Overlay.DrawCursors(buffer);
-            Overlay.DrawPaletteBar(buffer, Camera);
-            Overlay.DrawText(buffer);
+                Overlay.Initialize(transform, theme, buffer.palette);
+            }
+            return true;
+        }
+
+        bool CloseEditor() {
+            if (buffer == null) return false;
+            // @Todo: Clear undo
+            if (DestroyOnClose) buffer.Free();
+            Overlay.ClearScreen();
+            return true;
         }
 
         void Update() {
-            if (buffer == null) return;
             var command = keyboard.HandleKeyPress();
-            Eval.Run(command, buffer);
 
-            if (command != Command.Nop) {
-                Overlay.DrawCursors(buffer);
-
-                // @Performance: No need to redraw every time
-                if (buffer.mode == Buffer.Mode.Palette)
-                    Overlay.DrawPaletteScreen(buffer, Camera);
+            if (command == Command.ToggleOpen) {
+                if (running)
+                    running = !CloseEditor() && running;
                 else
-                    Overlay.DrawPaletteBar(buffer, Camera);
-
-                Overlay.DrawText(buffer);
+                    running = OpenEditor();
             }
+
+            if (!running || buffer == null || command == Command.Nop)
+                return;
+
+            Eval.Run(command, buffer);
+            Overlay.DrawCursors(buffer);
+
+            // @Performance: No need to redraw every time
+            if (buffer.mode == Buffer.Mode.Palette)
+                Overlay.DrawPaletteScreen(buffer, Camera);
+            else
+                Overlay.DrawPaletteBar(buffer, Camera);
+
+            Overlay.DrawText(buffer);
+        }
+
+        bool CanOpen() {
+            bool error = false;
+            if (!(T0Cursor && T1GridSquare && T2GridActive && T3Background)) {
+                Debug.LogError("[e2d] Missing theme assets.");
+                error = true;
+            }
+
+            if (!Font) {
+                Debug.LogError("[e2d] Missing font asset.");
+                error = true;
+            }
+            return !error;
         }
 
         void Reset() {
