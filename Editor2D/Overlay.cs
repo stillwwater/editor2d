@@ -8,7 +8,7 @@ namespace Editor2D
 {
     internal static class Overlay
     {
-        internal enum LowerGridDisplay
+        internal enum PreviewDisplay
         {
             Left,
             Center,
@@ -29,30 +29,34 @@ namespace Editor2D
             internal Color status_color;
             internal int status_padding;
             internal Vector2Int palette_area;
-            internal LowerGridDisplay palette_display;
+            internal PreviewDisplay palette_display;
+            internal bool show_preview_text;
             internal int preview_width;
         }
 
         struct Pool
         {
             internal List<GameObject> cursors;
-            internal GameObject[] palette_previews;
+            internal SpriteRenderer[] palette_previews;
             internal SpriteRenderer[] palette_grid;
             internal GameObject palette_grid_cursor;
             internal GameObject background;
         }
 
-        struct TextInfo
+        struct CanvasUI
         {
             internal Transform canvas;
             internal Text bar_left;
             internal Text bar_right;
             internal Text bar_center;
+            internal Text preview_index;
             internal Image panel;
+            internal Image mini_preview;
+            internal Image mini_preview_bg;
         }
 
         static Transform parent;
-        static TextInfo text;
+        static CanvasUI ui;
         static Theme theme;
         static Pool pool;
 
@@ -62,7 +66,7 @@ namespace Editor2D
 
             pool = new Pool() {
                 cursors = new List<GameObject>(),
-                palette_previews = new GameObject[palette.Length],
+                palette_previews = new SpriteRenderer[palette.Length],
                 palette_grid = new SpriteRenderer[theme.preview_width],
                 palette_grid_cursor = GameObject.Instantiate(theme.grid_active, parent),
                 background = GameObject.Instantiate(theme.background, parent)
@@ -71,54 +75,45 @@ namespace Editor2D
             Alloc(pool.cursors, theme.cursor, 1);
             InitializeSprites(pool.palette_grid, theme.grid_square);
             InitializePreviews(palette);
-            text = CreateCanvas();
+            ui = CreateCanvas();
             pool.palette_grid_cursor.name = "palette_cursor_000";
         }
 
         internal static void DrawPaletteBar(Buffer buffer, Camera camera) {
+            foreach (var p in pool.palette_previews) {
+                p.gameObject.SetActive(false);
+            }
+
+            pool.background.SetActive(false);
+
+            switch (theme.palette_display) {
+                case PreviewDisplay.Hidden:
+                    // Don't draw previews
+                    pool.palette_grid_cursor.SetActive(false);
+                    return;
+
+                case PreviewDisplay.Left:
+                case PreviewDisplay.Right:
+                    // Using canvas panel for preview, saves some computation
+                    var sprite = pool.palette_previews[buffer.palette_index].sprite;
+                    ui.mini_preview.sprite = sprite;
+                    pool.palette_grid_cursor.SetActive(false);
+                    return;
+            }
+
             Vector3 screen_pixels = new Vector3(Screen.width, Screen.height, 0);
             Vector3 camera_pos    = camera.transform.position;
             Vector3 screen_units  = camera.ScreenToWorldPoint(screen_pixels) - camera_pos;
             int page = buffer.palette_index / pool.palette_grid.Length;
-
-            foreach (var p in pool.palette_previews) {
-                p.SetActive(false);
-            }
-
-            pool.background.SetActive(false);
             pool.palette_grid_cursor.SetActive(true);
-
-            if (theme.palette_display == LowerGridDisplay.Hidden) {
-                pool.palette_grid_cursor.SetActive(false);
-                return;
-            }
 
             for (int i = 0; i < pool.palette_grid.Length; i++) {
                 GameObject entity;
-                float x, y;
+                float x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
+                float y = (1 - screen_units.y) + camera_pos.y;
 
-                switch (theme.palette_display) {
-                    case LowerGridDisplay.Center:
-                        x = (i - pool.palette_grid.Length / 2f) + .5f + camera_pos.x;
-                        break;
-
-                    case LowerGridDisplay.Left:
-                        x = (i - screen_units.x) + 1f + camera_pos.x;
-                        break;
-
-                    case LowerGridDisplay.Right:
-                        x = (i+screen_units.x - pool.palette_grid.Length) + camera_pos.x;
-                        break;
-
-                    default:
-                        Debug.LogError("[e2d] FATAL: Condition check failed.");
-                        return;
-                }
-
-                y = (1 - screen_units.y) + camera_pos.y;
                 entity = pool.palette_grid[i].gameObject;
-                entity.gameObject.SetActive(true);
-
+                entity.SetActive(true);
                 entity.transform.position = new Vector3(x, y);
 
                 if (i == buffer.palette_index % pool.palette_grid.Length) {
@@ -133,7 +128,7 @@ namespace Editor2D
                     continue;
                 }
 
-                var preview = pool.palette_previews[index_map];
+                var preview = pool.palette_previews[index_map].gameObject;
                 preview.transform.position   = new Vector3(x, y);
                 preview.transform.localScale = new Vector3(.8f, .8f, .8f);
                 preview.SetActive(true);
@@ -149,7 +144,7 @@ namespace Editor2D
             Debug.Assert(width > 0 && height > 0);
 
             foreach (var p in pool.palette_previews) {
-                p.SetActive(false);
+                p.gameObject.SetActive(false);
             }
 
             foreach (var sp in pool.palette_grid) {
@@ -182,7 +177,11 @@ namespace Editor2D
                     pool.palette_grid_cursor.transform.position = position;
                 }
 
-                var preview = pool.palette_previews[i];
+                // @Performance: preview.gameObject seems to be marginally slower than having
+                //   cached GameObjects using a rough benchmark. Need to benchmark further to
+                //   determine whether it's worth using more memory and cache all GameObjects
+                //   for previews.
+                var preview = pool.palette_previews[i].gameObject;
                 preview.transform.position   = position;
                 preview.transform.localScale = Vector3.one;
                 preview.SetActive(true);
@@ -211,57 +210,54 @@ namespace Editor2D
         internal static void DrawText(Buffer buffer) {
             // @Todo: Allow mapped cursor to be displayed.
             Vector3 cursor = buffer.cursors[buffer.cursors.Count - 1].position;
-            text.bar_right.text = string.Format("{0},{1}", cursor.x, cursor.y);
+            ui.bar_right.text = string.Format("{0},{1}", cursor.x, cursor.y);
 
             string name = "";
             var selected = buffer.Select(cursor);
 
             if (selected && buffer.log == null) {
                 if (buffer.cursors.Count > 1)
-                    name = selected.name + " etc.";
+                    name = TrimText(selected.name + " etc.", 15);
                 else
-                    name = selected.name;
+                    name = TrimText(selected.name, 15);
             }
 
-            if (name.Length > 15) {
-                string start = name.Substring(0, 6);
-                string end = name.Substring(name.Length - 6);
-                name = string.Format("{0}...{1}", start, end);
-            }
+            if (ui.preview_index)
+                ui.preview_index.text = string.Format("#{0:X2}", buffer.palette_index);
 
-            text.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
+            ui.bar_left.text = string.Format("L: {0} {1}", buffer.layer, name);
 
             if (buffer.log != null) {
-                text.bar_center.text = buffer.log;
+                ui.bar_center.text = buffer.log;
                 buffer.log = null; // Don't show log next time
                 return;
             }
 
-            if (!text.canvas.gameObject.activeSelf)
-                text.canvas.gameObject.SetActive(true);
+            if (!ui.canvas.gameObject.activeSelf)
+                ui.canvas.gameObject.SetActive(true);
 
             switch (buffer.mode) {
                 case Buffer.Mode.Normal:
-                    text.bar_center.text = "";
+                    ui.bar_center.text = "";
                     break;
 
                 case Buffer.Mode.Palette:
                     int area = theme.palette_area.x*theme.palette_area.y;
                     int page = (buffer.palette_index / area) + 1;
-                    text.bar_center.text = string.Format("~Page {0}~", page);
+                    ui.bar_center.text = string.Format("~Page {0}~", page);
                     break;
 
                 default:
                     // @Performance: Cache string allocation
                     string mode = buffer.mode.ToString().ToUpper();
-                    text.bar_center.text = string.Format("~{0}~", mode);
+                    ui.bar_center.text = string.Format("~{0}~", mode);
                     break;
             }
         }
 
         internal static void ClearScreen() {
             foreach (var p in pool.palette_previews)
-                p.SetActive(false);
+                p.gameObject.SetActive(false);
 
             foreach (var sp in pool.palette_grid)
                 sp.gameObject.SetActive(false);
@@ -271,7 +267,7 @@ namespace Editor2D
 
             pool.background.SetActive(false);
             pool.palette_grid_cursor.SetActive(false);
-            text.canvas.gameObject.SetActive(false);
+            ui.canvas.gameObject.SetActive(false);
         }
 
         ///
@@ -309,6 +305,18 @@ namespace Editor2D
             return i >= 0 ? i : buffer.palette_index;
         }
 
+        static string TrimText(string str, int length) {
+            const string sep = "...";
+
+            if (str.Length > length) {
+                int pad = (length - sep.Length) / 2;
+                string start = str.Substring(0, pad);
+                string end = str.Substring(str.Length - pad);
+                return string.Format("{0}{1}{2}", start, sep, end);
+            }
+            return str;
+        }
+
         static void InitializeSprites(SpriteRenderer[] items, GameObject original) {
             for (int i = 0; i < items.Length; i++) {
                 var entity = Alloc(original, i);
@@ -335,7 +343,7 @@ namespace Editor2D
 
                 if (sprite_renderer) {
                     entity.GetComponent<SpriteRenderer>().sortingOrder = 1002;
-                    pool.palette_previews[i] = entity;
+                    pool.palette_previews[i] = entity.GetComponent<SpriteRenderer>();
                     continue;
                 }
 
@@ -396,8 +404,8 @@ namespace Editor2D
             return src_comp as T;
         }
 
-        static TextInfo CreateCanvas() {
-            var info = new TextInfo();
+        static CanvasUI CreateCanvas() {
+            var info = new CanvasUI();
             var entity = new GameObject("canvas_000");
 
             var canvas = entity.AddComponent<Canvas>();
@@ -415,9 +423,21 @@ namespace Editor2D
 
             info.canvas = entity.transform;
 
-            info.panel = CreatePanel("status_bar", canvas);
+            if (theme.palette_display == PreviewDisplay.Left
+                || theme.palette_display == PreviewDisplay.Right) {
+                CreateMiniPreview(ref info, canvas);
+            }
+
+            CreateStatusBar(ref info, canvas);
+            return info;
+        }
+
+        static void CreateStatusBar(ref CanvasUI info, Canvas canvas) {
+            float hpad = Mathf.Max(32, theme.status_padding + 16);
+
+            info.panel = CreatePanel("status_bar", theme.status_color, canvas);
             CreateUI(
-                t:      info.panel,
+                entity: info.panel,
                 size:   new Vector2(
                             Screen.width - theme.status_padding*2,
                             32*theme.font_scaling),
@@ -430,10 +450,8 @@ namespace Editor2D
                 align:  TextAnchor.MiddleRight,
                 c:      canvas);
 
-            float hpad = Mathf.Max(32, theme.status_padding + 16);
-
             CreateUI(
-                t:      info.bar_right,
+                entity: info.bar_right,
                 size:   new Vector2(200, 32*theme.font_scaling),
                 offset: new Vector3(hpad, theme.status_padding),
                 align:  TextAnchor.UpperRight);
@@ -445,7 +463,7 @@ namespace Editor2D
                 c:      canvas);
 
             CreateUI(
-                t:      info.bar_left,
+                entity: info.bar_left,
                 size:   new Vector2(200, 32*theme.font_scaling),
                 offset: new Vector3(hpad, theme.status_padding),
                 align:  TextAnchor.UpperLeft);
@@ -457,23 +475,58 @@ namespace Editor2D
                 c:      canvas);
 
             CreateUI(
-                t:      info.bar_center,
+                entity: info.bar_center,
                 size:   new Vector2(200, 32*theme.font_scaling),
                 offset: new Vector3(0, theme.status_padding),
                 align:  TextAnchor.UpperCenter);
+        }
 
-            return info;
+        static void CreateMiniPreview(ref CanvasUI info, Canvas canvas) {
+            info.mini_preview_bg = CreatePanel("palette_mini_bg", theme.status_color, canvas);
+            info.mini_preview = CreatePanel("palette_mini_fg", Color.white, canvas);
+
+            var align = theme.palette_display == PreviewDisplay.Left
+                ? TextAnchor.LowerLeft
+                : TextAnchor.LowerRight;
+
+            float panel_width = 70f;
+
+            if (theme.show_preview_text) {
+                info.preview_index = CreateText(
+                    name:  "preview_index",
+                    fsize:  48,
+                    align:  align,
+                    c:      canvas);
+
+                CreateUI(
+                    entity: info.preview_index,
+                    size:   new Vector2(192, 54) * theme.font_scaling,
+                    offset: new Vector3(100, 40) * theme.font_scaling,
+                    align:  align);
+
+                panel_width = 130f;
+            }
+
+            CreateUI(
+                entity: info.mini_preview_bg,
+                size:   new Vector2(panel_width, 70) * theme.font_scaling,
+                offset: new Vector3(32, 32) * theme.font_scaling,
+                align:  align);
+
+            CreateUI(
+                entity: info.mini_preview,
+                size:   new Vector2(54, 54) * theme.font_scaling,
+                offset: new Vector3(40, 40) * theme.font_scaling,
+                align:  align);
         }
 
         static RectTransform CreateUI<T>(
-            T t,
+            T entity,
             Vector2 size,
             Vector3 offset,
             TextAnchor align) where T : Component
         {
-
-            var rt = t.GetComponent<RectTransform>();
-
+            var rt = entity.GetComponent<RectTransform>();
             rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0);
             rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 0);
             rt.sizeDelta = size;
@@ -497,6 +550,23 @@ namespace Editor2D
                     rt.anchorMax = new Vector2(1, 1);
                     ax = -size.x / 2 - offset.x;
                     ay = -size.y / 2 - offset.y;
+                    break;
+
+                case TextAnchor.LowerLeft:
+                    rt.anchorMax = new Vector2(0, 0);
+                    ax = size.x / 2 + offset.x;
+                    ay = size.y / 2 + offset.y;
+                    break;
+
+                case TextAnchor.LowerRight:
+                    rt.anchorMax = new Vector2(1, 0);
+                    ax = -size.x / 2 - offset.x;
+                    ay = size.y / 2 + offset.y;
+                    break;
+
+                case TextAnchor.MiddleCenter: break;
+                default:
+                    Debug.LogErrorFormat("[e2d] Unsopported anchor {0}.", align);
                     break;
             }
 
@@ -522,14 +592,14 @@ namespace Editor2D
             return t;
         }
 
-        static Image CreatePanel(string name, Canvas c) {
+        static Image CreatePanel(string name, Color color, Canvas c) {
             var entity = new GameObject(name);
             var img = entity.AddComponent<Image>();
             entity.transform.SetParent(c.transform);
 
             img.sprite = null;
             img.raycastTarget = false;
-            img.color = theme.status_color;
+            img.color = color;
             return img;
         }
     }

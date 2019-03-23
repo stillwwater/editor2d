@@ -50,11 +50,11 @@ namespace Editor2D
         [SerializeField] GameObject T3Background = null;
 
         [Header("Preview")]
-        [SerializeField] Overlay.LowerGridDisplay PreviewPosition
-                            = Overlay.LowerGridDisplay.Center;
-
+        [SerializeField] Overlay.PreviewDisplay PreviewPosition = Overlay.PreviewDisplay.Left;
         [Range(1, 16)]
+        [Tooltip("Width of preview grid. Only applies if PreviewPosition is Center.")]
         [SerializeField] int PreviewWidth       = 6;
+        [SerializeField] bool ShowPreviewText   = true;
 
         [Header("Palette Window")]
         [Tooltip("Width of the sprite selection panel.")]
@@ -109,6 +109,7 @@ namespace Editor2D
                     status_padding    = StatusPadding,
                     palette_area      = new Vector2Int(PaletteWidth, PaletteHeight),
                     palette_display   = PreviewPosition,
+                    show_preview_text = ShowPreviewText,
                     preview_width     = PreviewWidth
                 };
 
