@@ -26,6 +26,8 @@ namespace Editor2D
             internal Font font;
             internal float font_scaling;
             internal Color font_color;
+            internal Color status_color;
+            internal int status_padding;
             internal Vector2Int palette_area;
             internal LowerGridDisplay palette_display;
             internal int preview_width;
@@ -46,6 +48,7 @@ namespace Editor2D
             internal Text bar_left;
             internal Text bar_right;
             internal Text bar_center;
+            internal Image panel;
         }
 
         static Transform parent;
@@ -385,7 +388,8 @@ namespace Editor2D
             var fields = type.GetFields(flags);
 
             foreach (var p in properties) {
-                if (p.CanWrite)
+                // Cannot copy mesh property
+                if (p.CanWrite && p.Name != "mesh")
                     p.SetValue(dst_comp, p.GetValue(src_comp, null), null);
             }
 
@@ -415,45 +419,63 @@ namespace Editor2D
 
             info.canvas = entity.transform;
 
+            info.panel = CreatePanel("status_bar", canvas);
+            CreateUI(
+                t:      info.panel,
+                size:   new Vector2(
+                            Screen.width - theme.status_padding*2,
+                            32*theme.font_scaling),
+                offset: new Vector3(0, theme.status_padding),
+                align:  TextAnchor.UpperCenter);
+
             info.bar_right = CreateText(
                 name:  "bar_right",
-                size:   new Vector2(200, 32),
-                fsize:  32,
-                offset: new Vector3(32, 32),
-                align:  TextAnchor.UpperRight,
-                canvas: canvas);
+                fsize:  48,
+                align:  TextAnchor.MiddleRight,
+                c:      canvas);
+
+            float hpad = Mathf.Max(32, theme.status_padding + 16);
+
+            CreateUI(
+                t:      info.bar_right,
+                size:   new Vector2(200, 32*theme.font_scaling),
+                offset: new Vector3(hpad, theme.status_padding),
+                align:  TextAnchor.UpperRight);
 
             info.bar_left = CreateText(
-                name:   "bar_left",
-                size:   new Vector2(200, 32),
-                fsize:  32,
-                offset: new Vector3(32, 32),
-                align:  TextAnchor.UpperLeft,
-                canvas: canvas);
+                name:  "bar_left",
+                fsize:  48,
+                align:  TextAnchor.MiddleLeft,
+                c:      canvas);
+
+            CreateUI(
+                t:      info.bar_left,
+                size:   new Vector2(200, 32*theme.font_scaling),
+                offset: new Vector3(hpad, theme.status_padding),
+                align:  TextAnchor.UpperLeft);
 
             info.bar_center = CreateText(
-                name:   "bar_center",
-                size:   new Vector2(200, 32),
-                fsize:  32,
-                offset: new Vector3(0, 32),
-                align:  TextAnchor.UpperCenter,
-                canvas: canvas);
+                name:  "bar_center",
+                fsize:  48,
+                align:  TextAnchor.MiddleCenter,
+                c:      canvas);
+
+            CreateUI(
+                t:      info.bar_center,
+                size:   new Vector2(200, 32*theme.font_scaling),
+                offset: new Vector3(0, theme.status_padding),
+                align:  TextAnchor.UpperCenter);
 
             return info;
         }
 
-        static Text CreateText(
-            string name,
+        static RectTransform CreateUI<T>(
+            T t,
             Vector2 size,
-            int fsize,
             Vector3 offset,
-            TextAnchor align,
-            Canvas canvas)
+            TextAnchor align) where T : Component
         {
-            var text_entity = new GameObject(name);
-            text_entity.transform.parent = canvas.transform;
 
-            var t = text_entity.AddComponent<Text>();
             var rt = t.GetComponent<RectTransform>();
 
             rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0);
@@ -484,6 +506,13 @@ namespace Editor2D
 
             rt.anchorMin = rt.anchorMax;
             rt.anchoredPosition = new Vector3(ax, ay);
+            return rt;
+        }
+
+        static Text CreateText(string name, int fsize, TextAnchor align, Canvas c) {
+            var entity = new GameObject(name);
+            var t = entity.AddComponent<Text>();
+            entity.transform.SetParent(c.transform);
 
             t.font = theme.font;
             t.fontSize = (int)(fsize * theme.font_scaling);
@@ -492,8 +521,20 @@ namespace Editor2D
             t.verticalOverflow = VerticalWrapMode.Overflow;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.alignment = align;
+            t.alignByGeometry = true;
 
             return t;
+        }
+
+        static Image CreatePanel(string name, Canvas c) {
+            var entity = new GameObject(name);
+            var img = entity.AddComponent<Image>();
+            entity.transform.SetParent(c.transform);
+
+            img.sprite = null;
+            img.raycastTarget = false;
+            img.color = theme.status_color;
+            return img;
         }
     }
 }

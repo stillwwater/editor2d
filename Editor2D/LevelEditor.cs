@@ -38,8 +38,14 @@ namespace Editor2D
         [Header("Font")]
         [SerializeField] Font Font             = null;
         [Tooltip("Font size multiplier")]
-        [SerializeField] float FontScaling     = 2;
-        [SerializeField] Color FontColor       = new Color(0, 0, 0, .8f);
+        [SerializeField] float FontScaling     = 1;
+        [SerializeField] Color FontColor       = new Color(0, 0, 0, 1f);
+        [Tooltip("Pick font color based on camera background.")]
+        [SerializeField] bool FontColorAuto    = true;
+
+        [Header("Status Bar")]
+        [SerializeField] int StatusPadding       = 0;
+        [SerializeField] Color StatusColor       = new Color(.8f, .8f, .8f);
 
         [Header("Theme")]
         [SerializeField] GameObject T0Cursor     = null;
@@ -52,7 +58,7 @@ namespace Editor2D
                             = Overlay.LowerGridDisplay.Center;
 
         [Range(1, 16)]
-        [SerializeField] int PreviewWidth       = 4;
+        [SerializeField] int PreviewWidth       = 6;
 
         [Header("Palette Window")]
         [Tooltip("Width of the sprite selection panel.")]
@@ -85,6 +91,11 @@ namespace Editor2D
 
             if (!Camera) Camera = Camera.main;
 
+            if (FontColorAuto) {
+                Color bg = Camera.backgroundColor;
+                FontColor = new Color(bg.r, bg.g, bg.b, 1f);
+            }
+
             if (buffer == null) {
                 var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
                 buffer = new Buffer(chunk, Palette, Camera);
@@ -98,6 +109,8 @@ namespace Editor2D
                     font              = Font,
                     font_scaling      = FontScaling,
                     font_color        = FontColor,
+                    status_color      = StatusColor,
+                    status_padding    = StatusPadding,
                     palette_area      = new Vector2Int(PaletteWidth, PaletteHeight),
                     palette_display   = PreviewPosition,
                     preview_width     = PreviewWidth
