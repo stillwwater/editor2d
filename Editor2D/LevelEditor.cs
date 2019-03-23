@@ -9,12 +9,6 @@ namespace Editor2D
         [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
         [SerializeField] Camera Camera   = null;
 
-        [Header("GameObject Lookup")]
-        [Tooltip("Determines which game objects are included in the editor grid.")]
-        [SerializeField] Filter Filter   = Filter.HAS_SPRITE_RENDERER;
-        [Tooltip("Determines which editor layer the game object is placed in.")]
-        [SerializeField] Sorting Sorting = Sorting.ORDER_IN_LAYER;
-
         [Header("Grid")]
         [Tooltip("Smallest editable area in world units.")]
         [SerializeField] Rect MinArea    = new Rect(-8, -8, 16, 16);
@@ -24,6 +18,8 @@ namespace Editor2D
         [Space(8)]
         [Tooltip("Tile size (scale) in world units.")]
         [SerializeField] float TileSize  = 1;
+        [Tooltip("Determines which editor layer the game object is placed in.")]
+        [SerializeField] Sorting Sorting = Sorting.ORDER_IN_LAYER;
 
         [Header("Flags")]
         [Tooltip("Destroy deleted entities and clear undo history when closing.")]
@@ -97,7 +93,7 @@ namespace Editor2D
             }
 
             if (buffer == null) {
-                var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Filter, Sorting);
+                var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
                 buffer = new Buffer(chunk, Palette, Camera);
 
                 var theme = new Overlay.Theme() {

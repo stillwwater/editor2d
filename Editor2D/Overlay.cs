@@ -339,12 +339,8 @@ namespace Editor2D
                     continue;
                 }
 
-                CopyComponent<MeshFilter>(entity, palette[i]);
-
-                if (!CopyComponent<MeshRenderer>(entity, palette[i]))
-                    Debug.LogWarningFormat("[e2d] Palette {0} has no renderer.", entity.name);
-
-                pool.palette_previews[i] = entity;
+                string name = palette[i].name;
+                Debug.LogErrorFormat("[e2d] {0} is missing a SpriteRenderer.", name);
             }
         }
 
@@ -367,7 +363,7 @@ namespace Editor2D
                 original = entity;
             }
 
-            entity.name = string.Format("{0}{1}_{2}", prefix, original.name, id.ToString("x3"));
+            entity.name = string.Format("{0}{1}_{2:x3}", prefix, original.name, id);
             entity.SetActive(false);
             return entity;
         }
@@ -389,7 +385,7 @@ namespace Editor2D
 
             foreach (var p in properties) {
                 // Cannot copy mesh property
-                if (p.CanWrite && p.Name != "mesh")
+                if (p.CanWrite)
                     p.SetValue(dst_comp, p.GetValue(src_comp, null), null);
             }
 

@@ -5,23 +5,12 @@ using UnityEngine;
 namespace Editor2D
 {
     ///
-    /// Determines how the editor finds game objects to
-    /// include into its buffer.
-    ///
-    internal enum Filter
-    {
-        HAS_SPRITE_RENDERER,
-        HAS_MESH_RENDERER,
-        HAS_EDITOR_TAG
-    }
-
-    ///
-    /// Determined how the level editor puts different
+    /// Determines how the level editor puts different
     /// objects in layers. If not using an editor tag
     /// component the layer is determined by either:
     ///
     /// SORTING_LAYER: Sorting layer in sprite renderer
-    /// ORDER_IN_LAYER: Ordere in layer in sprite renderer
+    /// ORDER_IN_LAYER: Order in layer in sprite renderer
     /// Z_DEPTH: The z axis position.
     ///
     internal enum Sorting
@@ -74,10 +63,9 @@ namespace Editor2D
             float cell_scale,
             Rect min,
             Rect max,
-            Filter filter,
             Sorting sorting)
         {
-            var objects = FindGameObjects(filter);
+            var objects = FindGameObjects(typeof(SpriteRenderer));
 
             if (objects == null) {
                 Debug.LogError("[e2d] No GameObjects found");
@@ -130,23 +118,9 @@ namespace Editor2D
             return chunk;
         }
 
-        static GameObject[] FindGameObjects(Filter filter) {
+        static GameObject[] FindGameObjects(Type component) {
             var objects  = GameObject.FindObjectsOfType<GameObject>();
             var filtered = new List<GameObject>(objects.Length);
-            Type component;
-
-            switch (filter) {
-                case Filter.HAS_EDITOR_TAG:
-                    component = typeof(LevelEditor);
-                    break;
-                case Filter.HAS_MESH_RENDERER:
-                    component = typeof(MeshRenderer);
-                    break;
-                case Filter.HAS_SPRITE_RENDERER:
-                default:
-                    component = typeof(SpriteRenderer);
-                    break;
-            }
 
             foreach (var go in objects) {
                 if (go.GetComponent(component) != null) {
