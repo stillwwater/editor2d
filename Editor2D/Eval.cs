@@ -81,6 +81,10 @@ namespace Editor2D
                     buffer.SwitchMode(Buffer.Mode.Grab);
                     break;
 
+                case Command.ToggleScale:
+                    buffer.SwitchMode(Buffer.Mode.Scale);
+                    break;
+
                 case Command.NormalMode:
                     buffer.SwitchMode(Buffer.Mode.Normal);
                     break;

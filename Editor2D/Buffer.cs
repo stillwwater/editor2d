@@ -59,7 +59,8 @@ namespace Editor2D
                     break;
 
                 case Mode.Grab:
-                    if (mode == Mode.Grab) {
+                case Mode.Scale:
+                    if (mode == new_mode) {
                         mode = Mode.Normal;
                         GridRestoreAtCursors(cursors);
                         return;
@@ -157,9 +158,28 @@ namespace Editor2D
             }
         }
 
-        internal void Move(GameObject entity, Vector3 offset) {
+        internal Vector3 Move(GameObject entity, Vector3 offset) {
             GridAssign(entity, entity.transform.position + offset);
             entity.transform.position += offset;
+            return entity.transform.position;
+        }
+
+        internal (Vector3, Vector3) Scale(GameObject entity, Vector3 offset) {
+            Vector3 scl = (entity.transform.localScale + offset) * chunk.cell_scale;
+
+            if (scl.x == 0) scl.x += offset.x;
+            if (scl.y == 0) scl.y += offset.y;
+
+            if (scl.x < 0 || scl.y < 0)
+                log = "~-SCALE~";
+
+            float mag = (entity.transform.localScale - scl).magnitude;
+            Vector3 pos = entity.transform.position + (mag * offset) / 2f;
+
+            entity.transform.localScale = scl;
+            GridAssign(entity, pos);
+            entity.transform.position = pos;
+            return (pos, scl);
         }
 
         internal void Transform(Vector3 offset) {
@@ -203,8 +223,14 @@ namespace Editor2D
                     continue; // Empty selection
 
                 switch (mode) {
-                    case Mode.Grab: Move(selection[i], offset); break;
-                    // @Todo: Scale...
+                    case Mode.Grab:
+                        Move(selection[i], offset);
+                        break;
+
+                    case Mode.Scale:
+                        var (pos, scl) = Scale(selection[i], offset);
+                        ClampCursor(i, pos, scl);
+                        break;
                 }
             }
         }
@@ -383,6 +409,21 @@ namespace Editor2D
             // Focus view on the center of the selected region
             float z = view.transform.position.z;
             view.transform.position = new Vector3(mid.x, mid.y, z);
+        }
+
+        /// Position cursor in the corner of a scaled entity
+        void ClampCursor(int cursor_index, Vector3 position, Vector3 scale) {
+            Vector2 dir = Vector2.zero;
+            dir.x = Mathf.Clamp(Mathf.RoundToInt(scale.x), -1, 1);
+            dir.y = Mathf.Clamp(Mathf.RoundToInt(scale.y), -1, 1);
+
+            float half = chunk.cell_scale / 2;
+            Vector3 offset = new Vector3(half*dir.x, half*dir.y);
+
+            cursors[cursor_index] = new Cursor() {
+                position = position + (scale / 2f) - offset,
+                pinned   = false
+            };
         }
 
         bool SelectAtCursors(ref GameObject[] selection) {
