@@ -22,9 +22,12 @@ namespace Editor2D
         readonly float cell_scale;
         readonly Rect bounds;
 
+        bool synced;
+
         internal Cursor this[int index] {
             get => data[index];
             set {
+                Debug.Assert(synced);
                 ulong old_id = EncodePosition(data[index].position);
                 ulong new_id = EncodePosition(value.position);
 
@@ -52,18 +55,31 @@ namespace Editor2D
             data = new List<Cursor>(1);
             duplicates = new Dictionary<ulong, int>();
             Add(Vector3.zero); // @Todo: Camera position
+            synced = true;
+        }
+
+        internal void SetUnchecked(int index, Cursor value) {
+            data[index] = value;
+            synced = false;
         }
 
         internal void Clear() {
             data.Clear();
             duplicates.Clear();
+            synced = true;
+        }
+
+        internal void Reserve(int size) {
+            data.Capacity = Math.Max(data.Capacity, size);
         }
 
         /// Check if there are multiple cursors in a given position
         internal bool IsDuplicate(Vector3 position) {
             ulong id = EncodePosition(position);
-            return duplicates.ContainsKey(id)
-                   && duplicates[id] > 0;
+            if (duplicates.TryGetValue(id, out int num_duplicates)) {
+                return num_duplicates > 0;
+            }
+            return false;
         }
 
         internal bool RemoveDuplicate(Vector3 position, int ignore_index = -1) {
@@ -86,6 +102,42 @@ namespace Editor2D
         }
 
         internal bool Add(Cursor cursor) {
+            data.Add(cursor);
+            return AddToDuplicates(cursor);
+        }
+
+        internal bool Add(Vector3 position, bool pinned = false) {
+            return Add(new Cursor() {
+                position = position,
+                pinned   = pinned
+            });
+        }
+
+        ///
+        /// Add cursor without adding checking if it already exists.
+        /// Cursors.Sync must be called before checking for duplicates.
+        ///
+        internal void AddUnchecked(Vector3 position, bool pinned = false) {
+            data.Add(new Cursor() {
+                position = position,
+                pinned   = pinned
+            });
+            synced = false;
+        }
+
+        /// Build duplicates dictionary if Cursors is out of sync.
+        internal void Sync() {
+            if (synced)
+                return;
+
+            duplicates.Clear();
+            foreach (var cursor in data) {
+                AddToDuplicates(cursor);
+            }
+            synced = true;
+        }
+
+        bool AddToDuplicates(Cursor cursor) {
             ulong id = EncodePosition(cursor.position);
             bool is_dup = duplicates.ContainsKey(id);
 
@@ -94,15 +146,7 @@ namespace Editor2D
             else
                 duplicates.Add(id, 0);
 
-            data.Add(cursor);
-            return !is_dup;
-        }
-
-        internal bool Add(Vector3 position, bool pinned = false) {
-            return Add(new Cursor() {
-                position = position,
-                pinned   = pinned
-            });
+            return is_dup;
         }
 
         ulong EncodePosition(Vector3 position) {

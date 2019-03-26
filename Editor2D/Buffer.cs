@@ -60,6 +60,7 @@ namespace Editor2D
 
                 case Mode.Grab:
                 case Mode.Scale:
+                    cursors.Sync();
                     if (mode == new_mode) {
                         mode = Mode.Normal;
                         GridRestoreAtCursors(cursors);
@@ -78,6 +79,7 @@ namespace Editor2D
                 case Mode.Box:
                     if (mode == Mode.Box) {
                         mode = Mode.Normal;
+                        cursors.Sync();
                         return;
                     }
 
@@ -212,10 +214,10 @@ namespace Editor2D
 
             for (int i = 0; i < cursors.Count; i++) {
                 if (!cursors[i].pinned || mode != Mode.Normal) {
-                    cursors[i] = new Cursor() {
+                    cursors.SetUnchecked(i, new Cursor() {
                         position = cursors[i].position + offset,
                         pinned   = false
-                    };
+                    });
                 }
 
                 if (i >= selection.Length || !selection[i])
@@ -262,6 +264,9 @@ namespace Editor2D
             Vector2 point_b = new Vector2(area.z, area.w);
             cursors.Clear();
 
+            Vector2 size = (point_b - point_a) / chunk.cell_scale;
+            cursors.Reserve((int)Mathf.Abs(size.x * size.y));
+
             if (point_b.x < point_a.x)
                 (point_b.x, point_a.x) = (point_a.x, point_b.x);
 
@@ -271,7 +276,7 @@ namespace Editor2D
             for (float x = point_a.x; x <= point_b.x; x += chunk.cell_scale) {
                 for (float y = point_a.y; y <= point_b.y; y += chunk.cell_scale) {
                     Vector3 pos = new Vector3(x, y);
-                    cursors.Add(pos);
+                    cursors.AddUnchecked(pos);
                 }
             }
         }
