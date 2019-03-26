@@ -30,7 +30,7 @@ namespace Editor2D
         Camera view;
         GameObject[] selection = new GameObject[16];
         List<GameObject> deletion_pool = new List<GameObject>();
-        Rect selection_rect;
+        Vector4 selection_rect;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
             this.view    = view;
@@ -81,9 +81,8 @@ namespace Editor2D
                         return;
                     }
 
-                    DeselectAll();
-                    Vector3 last = cursors[0].position;
-                    selection_rect = new Rect(last.x, last.y, 1, 1);
+                    Vector3 last = cursors[cursors.Count - 1].position;
+                    selection_rect = new Vector4(last.x, last.y, last.x, last.y);
                     break;
 
                 case Mode.Palette:
@@ -205,8 +204,8 @@ namespace Editor2D
                 offset);
 
             if (mode == Mode.Box) {
-                selection_rect.width  += offset.x;
-                selection_rect.height += offset.y;
+                selection_rect.z += offset.x;
+                selection_rect.w += offset.y;
                 SelectInRect(selection_rect);
                 return;
             }
@@ -258,22 +257,21 @@ namespace Editor2D
             SelectFloodFill(anchor, parent.name);
         }
 
-        internal void SelectInRect(Rect area) {
-            int width  = (int)(area.width / chunk.cell_scale);
-            int height = (int)(area.height / chunk.cell_scale);
-
-            if (width <= 0 || height <= 0) {
-                // @Todo: Add support negative areas
-                SwitchMode(Mode.Normal);
-                return;
-            }
+        internal void SelectInRect(Vector4 area) {
+            Vector2 point_a = new Vector2(area.x, area.y);
+            Vector2 point_b = new Vector2(area.z, area.w);
             cursors.Clear();
 
-            for (int i = 0; i < width; i++) {
-                for (int j = 0; j < height; j++) {
-                    float x = (i + area.x) * chunk.cell_scale;
-                    float y = (j + area.y) * chunk.cell_scale;
-                    cursors.Add(new Vector3(x, y));
+            if (point_b.x < point_a.x)
+                (point_b.x, point_a.x) = (point_a.x, point_b.x);
+
+            if (point_b.y < point_a.y)
+                (point_b.y, point_a.y) = (point_a.y, point_b.y);
+
+            for (float x = point_a.x; x <= point_b.x; x += chunk.cell_scale) {
+                for (float y = point_a.y; y <= point_b.y; y += chunk.cell_scale) {
+                    Vector3 pos = new Vector3(x, y);
+                    cursors.Add(pos);
                 }
             }
         }
@@ -468,6 +466,7 @@ namespace Editor2D
                     continue;
 
                 cursors.Add(anchor);
+                // @Todo: Scale
                 nodes.Push(anchor + Vector3.up);
                 nodes.Push(anchor + Vector3.right);
                 nodes.Push(anchor + Vector3.down);
