@@ -351,8 +351,8 @@ namespace Editor2D
             int x = (int)((position.x - chunk.bounds.x) / chunk.cell_scale);
             int y = (int)((position.y - chunk.bounds.y) / chunk.cell_scale);
 
-            int scaled_w = chunk.ScaledBounds.width;
-            int scaled_h = chunk.ScaledBounds.height;
+            int scaled_w = chunk.scaled_bounds.width;
+            int scaled_h = chunk.scaled_bounds.height;
 
             if (x < 0 || y < 0 || x > scaled_w || y > scaled_h) {
                 // Out of bounds

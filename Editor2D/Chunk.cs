@@ -31,23 +31,15 @@ namespace Editor2D
     {
         internal float cell_scale;
         internal Rect bounds;
+        internal RectInt scaled_bounds;
         internal List<Layer> layers;
-
-        internal RectInt ScaledBounds {
-            get => new RectInt() {
-                x      = (int)(bounds.x / cell_scale),
-                y      = (int)(bounds.y / cell_scale),
-                width  = Mathf.CeilToInt(bounds.width / cell_scale),
-                height = Mathf.CeilToInt(bounds.height / cell_scale),
-            };
-        }
     }
 
     internal static class ChunkUtil
     {
         internal static void Realloc(ref Chunk chunk, int num_layers) {
-            int size_x = chunk.ScaledBounds.width + 1;
-            int size_y = chunk.ScaledBounds.height + 1;
+            int size_x = chunk.scaled_bounds.width + 1;
+            int size_y = chunk.scaled_bounds.height + 1;
 
             for (int i = 0; i < num_layers; i++) {
                 chunk.layers.Add(new Layer() {
@@ -78,11 +70,12 @@ namespace Editor2D
             var chunk = new Chunk() {
                 bounds = bounds,
                 cell_scale = cell_scale,
+                scaled_bounds = ScaleBounds(bounds, cell_scale),
                 layers = new List<Layer>()
             };
 
-            int size_x = chunk.ScaledBounds.width + 1;
-            int size_y = chunk.ScaledBounds.height + 1;
+            int size_x = chunk.scaled_bounds.width + 1;
+            int size_y = chunk.scaled_bounds.height + 1;
 
             if (objects.Length == 0) {
                 chunk.layers.Add(new Layer() {
@@ -116,6 +109,15 @@ namespace Editor2D
             }
 
             return chunk;
+        }
+
+        internal static RectInt ScaleBounds(Rect bounds, float scale) {
+            return new RectInt() {
+                x      = (int)(bounds.x / scale),
+                y      = (int)(bounds.y / scale),
+                width  = Mathf.CeilToInt(bounds.width / scale),
+                height = Mathf.CeilToInt(bounds.height / scale),
+            };
         }
 
         static GameObject[] FindGameObjects(Type component) {
