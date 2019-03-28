@@ -20,9 +20,11 @@ namespace Editor2D
         SelectSimilar,
         SelectItem,
         SelectAll,
+        CreateVertex,
         DeselectAll,
         ToggleCamera,
         ToggleBoxSelect,
+        ToggleLineSelect,
         ToggleWrite,
         ToggleGrab,
         ToggleScale,
@@ -93,6 +95,10 @@ namespace Editor2D
                     buffer.SwitchMode(Buffer.Mode.Box);
                     break;
 
+                case Command.ToggleLineSelect:
+                    buffer.SwitchMode(Buffer.Mode.Line);
+                    break;
+
                 case Command.NextModel:
                     if (buffer.palette_index < buffer.palette.Length - 1) {
                         buffer.palette_index++;
@@ -129,6 +135,10 @@ namespace Editor2D
 
                 case Command.DeselectAll:
                     buffer.DeselectAll();
+                    break;
+
+                case Command.CreateVertex:
+                    buffer.LineCreateVertex();
                     break;
 
                 case Command.Undo:

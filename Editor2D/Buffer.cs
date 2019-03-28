@@ -12,6 +12,7 @@ namespace Editor2D
             Grab,
             Scale,
             Box,
+            Line,
             Palette,
             Camera
         }
@@ -31,6 +32,7 @@ namespace Editor2D
         GameObject[] selection = new GameObject[16];
         List<GameObject> deletion_pool = new List<GameObject>();
         Vector4 selection_rect;
+        int line_origin;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
             this.view    = view;
@@ -51,6 +53,7 @@ namespace Editor2D
         }
 
         internal void SwitchMode(Mode new_mode) {
+            // @Cleanup
             switch (new_mode) {
                 case Mode.Normal:
                     if (mode == Mode.Grab)
@@ -87,6 +90,23 @@ namespace Editor2D
                     selection_rect = new Vector4(last.x, last.y, last.x, last.y);
                     break;
 
+                case Mode.Line:
+                    cursors.Sync();
+                    if (mode == Mode.Line) {
+                        // Unpin all cursors
+                        for (int i = 0; i < cursors.Count; i++) {
+                            cursors[i] = new Cursor() {
+                                position = cursors[i].position,
+                                pinned   = false
+                            };
+                        }
+                        mode = Mode.Normal;
+                        return;
+                    }
+                    LineCreateVertex();
+                    break;
+
+
                 case Mode.Palette:
                     if (mode == Mode.Palette) {
                         mode = Mode.Normal;
@@ -109,10 +129,16 @@ namespace Editor2D
             }
             mode = Mode.Normal;
             undo.PushFrame(layer);
+            cursors.Sync();
 
             // @Todo: Keep prefab link
 
             for (int i = 0; i < cursors.Count; i++) {
+                Vector3 position = cursors[i].position;
+
+                if (cursors.IsDuplicate(position))
+                    cursors.RemoveDuplicate(position, i);
+
                 var entity = GameObject.Instantiate(palette[index]);
                 entity.name = string.Format(
                     "{0}_{1:X3}",
@@ -130,10 +156,12 @@ namespace Editor2D
             GridRestoreAtCursors(cursors);
         }
 
+        ///
         /// Find palette from which this entity was created.
         /// Uses string compare, so the child must share a
         /// common name with the parent (default for entities
         /// created using Buffer.CreateFromPalette).
+        ///
         internal GameObject FindParent(GameObject entity) {
             foreach (var parent in palette) {
                 if (entity.name.Contains(parent.name))
@@ -213,7 +241,7 @@ namespace Editor2D
             }
 
             for (int i = 0; i < cursors.Count; i++) {
-                if (!cursors[i].pinned || mode != Mode.Normal) {
+                if (!cursors[i].pinned || (mode != Mode.Normal && mode != Mode.Line)) {
                     cursors.SetUnchecked(i, new Cursor() {
                         position = cursors[i].position + offset,
                         pinned   = false
@@ -234,6 +262,7 @@ namespace Editor2D
                         break;
                 }
             }
+            if (mode == Mode.Line) SelectLine(line_origin);
         }
 
         ///
@@ -281,6 +310,56 @@ namespace Editor2D
             }
         }
 
+        internal void SelectLine(int origin) {
+            if (cursors.Count < 2 || origin >= cursors.Count)
+                return;
+
+            Vector3 point_a = cursors[origin-1].position;
+            Vector3 point_b = cursors[origin].position;
+
+            if (point_a == point_b)
+                return;
+
+            int rem = origin + 1;
+            if (cursors.Count > rem)
+                // Clear cursors from the origin until the end since
+                // these will be modified.
+                cursors.RemoveRange(rem, cursors.Count - rem, sync: false);
+
+            DrawCursorLine(point_a, point_b);
+        }
+
+        ///
+        /// Create new endpoints for the current line
+        /// or create a new line.
+        ///
+        internal void LineCreateVertex() {
+            if (mode != Mode.Line) {
+                DeselectAll();
+                PinCursor();
+                line_origin = cursors.Count - 1;
+                mode = Mode.Line;
+                return;
+            }
+
+            cursors.Sync();
+            // To create a new vertex we need to swap the last cursor with
+            // the current origin, which will be earlier in the cursors list
+            // than the cursors created for the current line.
+            var start = cursors[line_origin];
+            cursors[line_origin] = cursors[cursors.Count - 1];
+
+            cursors[cursors.Count - 1] = new Cursor() {
+                position = start.position,
+                pinned   = true
+            };
+            // The new origin, point_a is now the previous origin
+            // point_a is at Count - 2 (pinned)
+            // point_b is at Count - 1 (line_origin)
+            cursors.Add(start.position);
+            line_origin = cursors.Count - 1;
+        }
+
         internal void SelectAllInLayer() {
             cursors.Clear();
             for (int i = 0; i < chunk.layers[layer].grid.GetLength(0); i++) {
@@ -309,6 +388,7 @@ namespace Editor2D
                 return;
             }
 
+            cursors.Sync();
             var last = cursors[cursors.Count - 1];
 
             for (int i = 0; i < cursors.Count - 1; i++) {
@@ -476,6 +556,55 @@ namespace Editor2D
                 nodes.Push(anchor + Vector3.right);
                 nodes.Push(anchor + Vector3.down);
                 nodes.Push(anchor + Vector3.left);
+            }
+        }
+
+        ///
+        /// Draw a line using cursors between two points
+        /// using Bresenham's Line Drawing algorithm.
+        ///
+        void DrawCursorLine(Vector3 point_a, Vector3 point_b) {
+            Vector3 delta = point_b - point_a;
+            Vector2 inc   = new Vector2(chunk.cell_scale, chunk.cell_scale);
+            Vector2 error = Vector2.zero;
+
+            if (delta.y < 0) {
+                delta.y = -delta.y;
+                inc.y = -inc.y;
+            }
+            if (delta.x < 0) {
+                delta.x = -delta.x;
+                inc.x = -inc.x;
+            }
+
+            // Stop before the end point
+            point_b -= (Vector3)inc;
+
+            if (point_a == point_b)
+                return;
+
+            if (delta.y > delta.x) {
+                // for abs(dy/dx) > 1 bias y axis
+                while (point_a.y != point_b.y) {
+                    point_a.y += inc.y;
+                    error.y += delta.x * 2;
+                    if (error.y > delta.y) {
+                        point_a.x += inc.x;
+                        error.y -= delta.y * 2;
+                    }
+                    cursors.AddUnchecked(point_a, pinned: true);
+                }
+                return;
+            }
+
+            while (point_a.x != point_b.x) {
+                point_a.x += inc.x;
+                error.x += delta.y * 2;
+                if (error.x > delta.x) {
+                    point_a.y += inc.y;
+                    error.x -= delta.x * 2;
+                }
+                cursors.AddUnchecked(point_a, pinned: true);
             }
         }
 

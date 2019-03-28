@@ -69,6 +69,18 @@ namespace Editor2D
             synced = true;
         }
 
+        internal void RemoveRange(int start, int count, bool sync = true) {
+            if (sync) {
+                for (int i = start; i < count; i++) {
+                    ulong id = EncodePosition(data[i].position);
+                    if (duplicates.ContainsKey(id)) duplicates.Remove(id);
+                }
+            } else {
+                synced = false;
+            }
+            data.RemoveRange(start, count);
+        }
+
         internal void Reserve(int size) {
             data.Capacity = Math.Max(data.Capacity, size);
         }
