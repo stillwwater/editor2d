@@ -52,69 +52,37 @@ namespace Editor2D
             undo.Clear();
         }
 
-        internal void SwitchMode(Mode new_mode) {
-            // @Cleanup
+        internal Mode SwitchMode(Mode new_mode) {
             switch (new_mode) {
                 case Mode.Normal:
                     if (mode == Mode.Grab)
                         GridRestoreAtCursors(cursors);
                     DeselectAll();
+                    mode = new_mode;
                     break;
 
                 case Mode.Grab:
                 case Mode.Scale:
-                    cursors.Sync();
-                    if (mode == new_mode) {
-                        mode = Mode.Normal;
-                        GridRestoreAtCursors(cursors);
-                        return;
-                    }
-
-                    undo.PushFrame(layer);
-                    if (!SelectAtCursors(ref selection)) {
-                        undo.PopFrame(out _);
-                        if (mode != Mode.Box)
-                            DeselectAll();
-                        return;
-                    }
+                    ToggleTransformMode(new_mode);
                     break;
 
                 case Mode.Box:
-                    if (mode == Mode.Box) {
-                        mode = Mode.Normal;
-                        cursors.Sync();
-                        return;
-                    }
-
-                    Vector3 last = cursors[cursors.Count - 1].position;
-                    selection_rect = new Vector4(last.x, last.y, last.x, last.y);
+                    ToggleBoxMode(new_mode);
                     break;
 
                 case Mode.Line:
-                    cursors.Sync();
-                    if (mode == Mode.Line) {
-                        // Unpin all cursors
-                        for (int i = 0; i < cursors.Count; i++) {
-                            cursors[i] = new Cursor() {
-                                position = cursors[i].position,
-                                pinned   = false
-                            };
-                        }
-                        mode = Mode.Normal;
-                        return;
-                    }
-                    LineCreateVertex();
+                    ToggleLineMode(new_mode);
                     break;
-
 
                 case Mode.Palette:
                     if (mode == Mode.Palette) {
                         mode = Mode.Normal;
-                        return;
+                        break;
                     }
+                    mode = new_mode;
                     break;
             }
-            mode = new_mode;
+            return mode;
         }
 
         internal void CreateFromPalette(int index) {
@@ -708,6 +676,53 @@ namespace Editor2D
             }
 
             view.transform.position += offset;
+        }
+
+        void ToggleTransformMode(Mode new_mode) {
+            cursors.Sync();
+            if (mode == new_mode) {
+                mode = Mode.Normal;
+                GridRestoreAtCursors(cursors);
+                return;
+            }
+
+            undo.PushFrame(layer);
+            if (!SelectAtCursors(ref selection)) {
+                undo.PopFrame(out _);
+                if (mode != Mode.Box)
+                    DeselectAll();
+                return;
+            }
+            mode = new_mode;
+        }
+
+        void ToggleBoxMode(Mode new_mode) {
+            if (mode == Mode.Box) {
+                mode = Mode.Normal;
+                cursors.Sync();
+                return;
+            }
+
+            Vector3 last = cursors[cursors.Count - 1].position;
+            selection_rect = new Vector4(last.x, last.y, last.x, last.y);
+            mode = new_mode;
+        }
+
+        void ToggleLineMode(Mode new_mode) {
+            cursors.Sync();
+            if (mode == Mode.Line) {
+                // Unpin all cursors
+                for (int i = 0; i < cursors.Count; i++) {
+                    cursors[i] = new Cursor() {
+                        position = cursors[i].position,
+                        pinned   = false
+                    };
+                }
+                mode = Mode.Normal;
+                return;
+            }
+            LineCreateVertex();
+            mode = new_mode;
         }
     }
 }
