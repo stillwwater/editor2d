@@ -118,6 +118,10 @@ namespace Editor2D
                     buffer.Erase();
                     break;
 
+                case Command.Clone:
+                    buffer.Clone();
+                    break;
+
                 case Command.SelectItem:
                     if (buffer.mode != Buffer.Mode.Normal) {
                         buffer.SwitchMode(Buffer.Mode.Normal);

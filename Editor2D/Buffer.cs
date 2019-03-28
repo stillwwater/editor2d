@@ -107,21 +107,54 @@ namespace Editor2D
                 if (cursors.IsDuplicate(position))
                     cursors.RemoveDuplicate(position, i);
 
-                var entity = GameObject.Instantiate(palette[index]);
-                entity.name = string.Format(
-                    "{0}_{1:X3}",
-                    palette[index].name,
-                    entityid++);
-
-                entity.transform.position = cursors[i].position;
-                entity.SetActive(false);
-
-                undo.RegisterState(entity);
-                entity.SetActive(true);
-                GridAssign(entity, cursors[i].position);
-                // @Todo: Invoke(created, created)
+                CreateEntity(palette[index], palette[index].name, position);
             }
             GridRestoreAtCursors(cursors);
+        }
+
+        internal void Erase() {
+            undo.PushFrame(layer);
+
+            for (int i = 0; i < cursors.Count; i++) {
+                Vector2Int grid_pos;
+
+                // @Cleanup: unnecessary
+                if (!MapCoordinate(cursors[i].position, out grid_pos)) {
+                    continue;
+                }
+
+                // @Todo: Null check
+                var entity = Select(grid_pos);
+                undo.RegisterState(entity);
+                Kill(entity);
+            }
+        }
+
+        internal void Clone() {
+            mode = Mode.Normal;
+            undo.PushFrame(layer);
+            cursors.Sync();
+
+            for (int i = 0; i < cursors.Count; i++) {
+                Vector3 position = cursors[i].position;
+
+                if (cursors.IsDuplicate(position))
+                    cursors.RemoveDuplicate(position, i);
+
+                var original = Select(position);
+                if (!original) continue;
+
+                // @Todo: Define separator
+                string original_name = original.name;
+                int separator = original_name.LastIndexOf('_');
+                string base_name = original_name.Substring(0, separator);
+                CreateEntity(original, base_name, position);
+            }
+            ToggleTransformMode(Mode.Grab);
+            // Remove frame created by grab since it doesn't make sense
+            // to revert the cloned entities to the position they came
+            // from (a frame for the clone operation already exists).
+            undo.PopFrame(out _);
         }
 
         ///
@@ -137,22 +170,6 @@ namespace Editor2D
             }
 
             return null;
-        }
-
-        internal void Erase() {
-            undo.PushFrame(layer);
-
-            for (int i = 0; i < cursors.Count; i++) {
-                Vector2Int grid_pos;
-
-                if (!MapCoordinate(cursors[i].position, out grid_pos)) {
-                    continue;
-                }
-
-                var entity = Select(grid_pos);
-                undo.RegisterState(entity);
-                Kill(entity);
-            }
         }
 
         internal Vector3 Move(GameObject entity, Vector3 offset) {
@@ -574,6 +591,21 @@ namespace Editor2D
                 }
                 cursors.AddUnchecked(point_a, pinned: true);
             }
+        }
+
+        GameObject CreateEntity(GameObject original, string name, Vector3 position) {
+            var entity = GameObject.Instantiate(original);
+            // @Todo: Set format in options
+            entity.name = string.Format("{0}_{1:X3}", name, entityid++);
+            entity.transform.position = position;
+
+            entity.SetActive(false);
+            undo.RegisterState(entity);
+            entity.SetActive(true);
+
+            GridAssign(entity, position);
+            // @Todo: Invoke(created, created)
+            return entity;
         }
 
         void Kill(GameObject entity) {
