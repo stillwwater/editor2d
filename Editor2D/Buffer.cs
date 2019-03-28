@@ -319,6 +319,7 @@ namespace Editor2D
         /// or create a new line.
         ///
         internal void LineCreateVertex() {
+            Debug.Assert(cursors.Count > 0);
             if (mode != Mode.Line) {
                 DeselectAll();
                 PinCursor();
@@ -346,7 +347,10 @@ namespace Editor2D
         }
 
         internal void SelectAllInLayer() {
+            Debug.Assert(cursors.Count > 0);
+            var last = cursors[cursors.Count - 1];
             cursors.Clear();
+
             for (int i = 0; i < chunk.layers[layer].grid.GetLength(0); i++) {
                 for (int j = 0; j < chunk.layers[layer].grid.GetLength(1); j++) {
                     if (!Select(new Vector2Int(i, j))) continue;
@@ -355,10 +359,12 @@ namespace Editor2D
                     cursors.Add(new Vector3(x, y));
                 }
             }
+            if (cursors.Count == 0)
+                cursors.Add(last);
         }
 
         internal void DeselectAll() {
-            if (cursors.Count == 0) return;
+            Debug.Assert(cursors.Count > 0);
             Vector3 position = cursors[cursors.Count - 1].position;
             cursors.Clear();
             cursors.Add(new Cursor() {
@@ -368,11 +374,7 @@ namespace Editor2D
         }
 
         internal void PinCursor() {
-            if (cursors.Count == 0) {
-                Debug.LogError("[e2d] No cursors to pin.");
-                return;
-            }
-
+            Debug.Assert(cursors.Count > 0);
             cursors.Sync();
             var last = cursors[cursors.Count - 1];
 
