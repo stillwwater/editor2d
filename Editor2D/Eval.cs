@@ -20,8 +20,9 @@ namespace Editor2D
         SelectSimilar,
         SelectItem,
         SelectAll,
-        CreateVertex,
+        DeselectItem,
         DeselectAll,
+        CreateVertex,
         ToggleCamera,
         ToggleBoxSelect,
         ToggleLineSelect,
@@ -136,6 +137,10 @@ namespace Editor2D
                 case Command.SelectAll:
                     buffer.SelectAllInLayer();
                     break;
+
+                case Command.DeselectItem:
+                    buffer.RemovePinnedCursor();
+                    return;
 
                 case Command.DeselectAll:
                     buffer.DeselectAll();

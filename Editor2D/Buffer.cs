@@ -390,6 +390,16 @@ namespace Editor2D
             };
         }
 
+        internal void RemovePinnedCursor() {
+            Debug.Assert(cursors.Count > 0);
+            cursors.Sync();
+            var last = cursors[cursors.Count - 1];
+            cursors.RemoveDuplicate(last.position, cursors.Count - 1);
+
+            if (cursors[cursors.Count - 1].position != last.position)
+                cursors.Add(last.position, pinned: false);
+        }
+
         /// Select entity at a grid position
         internal GameObject Select(Vector2Int grid_pos) {
             var temp   = chunk.layers[layer].temp[grid_pos.x, grid_pos.y];
