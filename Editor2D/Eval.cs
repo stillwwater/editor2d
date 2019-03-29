@@ -28,7 +28,6 @@ namespace Editor2D
         ToggleLineSelect,
         ToggleWrite,
         ToggleGrab,
-        ToggleScale,
         TogglePalette,
         NextModel,
         PreviousModel,
@@ -82,10 +81,6 @@ namespace Editor2D
 
                 case Command.ToggleGrab:
                     buffer.SwitchMode(Buffer.Mode.Grab);
-                    break;
-
-                case Command.ToggleScale:
-                    buffer.SwitchMode(Buffer.Mode.Scale);
                     break;
 
                 case Command.NormalMode:
