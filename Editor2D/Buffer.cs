@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 namespace Editor2D
 {
@@ -566,7 +567,11 @@ namespace Editor2D
         }
 
         GameObject CreateEntity(GameObject original, string name, Vector3 position) {
+#if UNITY_EDITOR
+            var entity = (GameObject)PrefabUtility.InstantiatePrefab(original);
+#else
             var entity = GameObject.Instantiate(original);
+#endif
             // @Todo: Set format in options
             entity.name = string.Format("{0}_{1:X3}", name, entityid++);
             entity.transform.position = position;
