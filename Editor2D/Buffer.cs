@@ -18,21 +18,21 @@ namespace Editor2D
         }
 
         internal readonly GameObject[] palette;
-
-        internal Chunk chunk;
+        internal readonly Cursors cursors;
+        internal readonly Undo undo;
         internal Mode mode;
         internal int layer;
         internal int palette_index;
-        internal Cursors cursors;
         internal string log;
-        internal readonly Undo undo;
+        internal Chunk chunk;
 
+        readonly GameObject[] prefab_parents;
+        readonly List<GameObject> deletion_pool;
+        readonly Camera view;
         int entityid;
-        Camera view;
-        GameObject[] selection = new GameObject[16];
-        List<GameObject> deletion_pool = new List<GameObject>();
         Vector4 selection_rect;
         int line_origin;
+        GameObject[] selection;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
             this.view    = view;
@@ -40,6 +40,9 @@ namespace Editor2D
             this.palette = palette;
             undo = new Undo();
             cursors = new Cursors(chunk.bounds, chunk.cell_scale);
+            deletion_pool = new List<GameObject>();
+            selection = new GameObject[16];
+            prefab_parents = new GameObject[palette.Length];
         }
 
         internal void Free() {
@@ -91,7 +94,7 @@ namespace Editor2D
             }
 
             if (index >= palette.Length || index < 0) {
-                Debug.LogErrorFormat("[e2d] No palette entity at {0}.", index);
+                Debug.LogErrorFormat("[e2d] No palette entry at {0}.", index);
                 return;
             }
             mode = Mode.Normal;
@@ -106,7 +109,9 @@ namespace Editor2D
                 if (cursors.IsDuplicate(position))
                     cursors.RemoveDuplicate(position, i);
 
-                CreateEntity(palette[index], palette[index].name, position);
+                var entity = CreateEntity(palette[index], palette[index].name, position);
+                var parent = ParentContainer(index);
+                entity.transform.SetParent(parent.transform);
             }
             GridRestoreAtCursors(cursors);
         }
@@ -143,11 +148,13 @@ namespace Editor2D
                 var original = Select(position);
                 if (!original) continue;
 
-                // @Todo: Define separator
-                string original_name = original.name;
-                int separator = original_name.LastIndexOf('_');
-                string base_name = original_name.Substring(0, separator);
-                CreateEntity(original, base_name, position);
+                int palette_index = FindPrefab(original, out GameObject prefab);
+                Debug.Assert(palette_index >= 0);
+
+                string base_name = prefab.name;
+                var parent = ParentContainer(palette_index);
+                var clone = CreateEntity(prefab, base_name, position);
+                clone.transform.SetParent(parent.transform);
             }
             ToggleTransformMode(Mode.Grab);
             // Remove frame created by grab since it doesn't make sense
@@ -157,18 +164,20 @@ namespace Editor2D
         }
 
         ///
-        /// Find palette from which this entity was created.
-        /// Uses string compare, so the child must share a
-        /// common name with the parent (default for entities
-        /// created using Buffer.CreateFromPalette).
+        /// Find palette entry from which this entity was created.
+        /// Uses string compare, so the child must share a common
+        /// name with the prefab (default for entities created
+        /// using Buffer.CreateFromPalette).
         ///
-        internal GameObject FindParent(GameObject entity) {
-            foreach (var parent in palette) {
-                if (entity.name.Contains(parent.name))
-                    return parent;
+        internal int FindPrefab(GameObject entity, out GameObject prefab) {
+            for (int i = 0; i < palette.Length; i++) {
+                if (entity.name.Contains(palette[i].name)) {
+                    prefab = palette[i];
+                    return i;
+                }
             }
-
-            return null;
+            prefab = null;
+            return -1;
         }
 
         internal Vector3 Move(GameObject entity, Vector3 offset) {
@@ -238,15 +247,15 @@ namespace Editor2D
             if (!entity)
                 return;
 
-            var parent = FindParent(entity);
+            FindPrefab(entity, out GameObject prefab);
 
-            if (!parent) {
-                Debug.LogWarningFormat("[e2d] No parent for {0}.", entity.name);
+            if (!prefab) {
+                Debug.LogWarningFormat("[e2d] No palette entry for {0}.", entity.name);
                 return;
             }
 
             cursors.Clear();
-            SelectFloodFill(anchor, parent.name);
+            SelectFloodFill(anchor, prefab.name);
         }
 
         internal void SelectInRect(Vector4 area) {
@@ -572,6 +581,7 @@ namespace Editor2D
 #else
             var entity = GameObject.Instantiate(original);
 #endif
+            Debug.Assert(entity);
             // @Todo: Set format in options
             entity.name = string.Format("{0}_{1:X3}", name, entityid++);
             entity.transform.position = position;
@@ -583,6 +593,17 @@ namespace Editor2D
             GridAssign(entity, position);
             // @Todo: Invoke(created, created)
             return entity;
+        }
+
+        /// Create an empty game object for a palette entry
+        GameObject ParentContainer(int palette_index) {
+            Debug.Assert(palette.Length == prefab_parents.Length);
+            if (!prefab_parents[palette_index]) {
+                var entity = new GameObject(palette[palette_index].name);
+                prefab_parents[palette_index] = entity;
+                return entity;
+            }
+            return prefab_parents[palette_index];
         }
 
         void Kill(GameObject entity) {
