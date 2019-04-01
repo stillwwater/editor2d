@@ -76,6 +76,8 @@ namespace Editor2D
             new KeyBinding(Modifier.Control, KeyCode.J,          Command.PreviousModel   ),
             new KeyBinding(Modifier.Control, KeyCode.I,          Command.NextLayer       ),
             new KeyBinding(Modifier.Control, KeyCode.K,          Command.PreviousLayer   ),
+            new KeyBinding(Modifier.Control, KeyCode.W,          Command.WriteLvl        ),
+            new KeyBinding(Modifier.Control, KeyCode.O,          Command.OpenLvl         ),
         };
 
         float long_press_time;

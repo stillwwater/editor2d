@@ -38,8 +38,8 @@ namespace Editor2D
     internal static class ChunkUtil
     {
         internal static void Realloc(ref Chunk chunk, int num_layers) {
-            int size_x = chunk.scaled_bounds.width + 1;
-            int size_y = chunk.scaled_bounds.height + 1;
+            int size_x = chunk.scaled_bounds.width;
+            int size_y = chunk.scaled_bounds.height;
 
             for (int i = 0; i < num_layers; i++) {
                 chunk.layers.Add(new Layer() {
@@ -74,8 +74,8 @@ namespace Editor2D
                 layers = new List<Layer>()
             };
 
-            int size_x = chunk.scaled_bounds.width + 1;
-            int size_y = chunk.scaled_bounds.height + 1;
+            int size_x = chunk.scaled_bounds.width;
+            int size_y = chunk.scaled_bounds.height;
 
             if (objects.Length == 0) {
                 chunk.layers.Add(new Layer() {

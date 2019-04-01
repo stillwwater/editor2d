@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using Lvl2D;
 
 namespace Editor2D
 {
@@ -29,15 +31,25 @@ namespace Editor2D
         readonly GameObject[] prefab_parents;
         readonly List<GameObject> deletion_pool;
         readonly Camera view;
+        readonly string name;
+        readonly string path;
         int entityid;
         Vector4 selection_rect;
         int line_origin;
         GameObject[] selection;
 
-        internal Buffer(Chunk chunk, GameObject[] palette, Camera view) {
+        internal Buffer(
+            Chunk chunk,
+            GameObject[] palette,
+            Camera view,
+            string name,
+            string path)
+        {
             this.view    = view;
             this.chunk   = chunk;
             this.palette = palette;
+            this.name    = name;
+            this.path    = path;
             undo = new Undo();
             cursors = new Cursors(chunk.bounds, chunk.cell_scale);
             deletion_pool = new List<GameObject>();
@@ -416,7 +428,7 @@ namespace Editor2D
             int scaled_w = chunk.scaled_bounds.width;
             int scaled_h = chunk.scaled_bounds.height;
 
-            if (x < 0 || y < 0 || x > scaled_w || y > scaled_h) {
+            if (x < 0 || y < 0 || x >= scaled_w || y >= scaled_h) {
                 // Out of bounds
                 // @Todo: Allocate bigger grid/ new chunk when out of bounds?
                 index = Vector2Int.zero;
@@ -452,6 +464,85 @@ namespace Editor2D
             string time = undo.TimeDelta(frame);
             string s = frame.states.Count == 1 ? "" : "s";
             log = string.Format("{0} change{1}; {2}", frame.states.Count, s, time);
+        }
+
+        internal void WriteBufferToFile() {
+            const string signature = "e2d (lvl2d)";
+
+            var header = new LvlHeader() {
+                palette = (ushort)palette.Length,
+                layers  = (ushort)chunk.layers.Count,
+                width   = (ushort)(chunk.scaled_bounds.width),
+                height  = (ushort)(chunk.scaled_bounds.height),
+                name    = name,
+                author  = signature,
+                camera  = new LvlHeader.Camera() {
+                    x = view.transform.position.x,
+                    y = view.transform.position.y,
+                    z = view.transform.position.z,
+                    ortho_size = view.orthographicSize,
+                    set_color = false // @Todo: Option to load camera background color
+                }
+            };
+
+            Func<GameObject, int> find_prefab = (e) => FindPrefab(e, out _);
+            Func<int, LvlLayer> find_layer = (l) => {
+                return new LvlLayer() {
+                    layer_id = l,
+                    z_depth = 0f // @Todo: Set layer z-depth
+                };
+            };
+            Func<int, Vector2Int, GameObject> find_entity = (l, grid_pos) => {
+                layer = l;
+                return Select(grid_pos);
+            };
+
+            using (var fs = File.Open(path, FileMode.Create)) {
+                using (var bin = new BinaryWriter(fs)) {
+                    var lvl = new LvlWriter(bin);
+                    lvl.WriteAll(header, find_layer, find_entity, find_prefab);
+                }
+            }
+            log = string.Format("Write: {0}", path);
+        }
+
+        internal void LoadBufferFromFile() {
+            var layer_record = new LvlLayer();
+
+            Action<LvlLayer> create_layer = (l) => {
+                if (l.layer_id >= chunk.layers.Count)
+                    ChunkUtil.Realloc(ref chunk, 1);
+
+                // @Todo: Layers are still missing a z-depth component
+                // @Todo: Currently assuming layer_id == index.
+                layer_record = l;
+                layer = l.layer_id;
+            };
+
+            Action<LvlEntity, Vector2Int> create_entity = (entity, grid_pos) => {
+                float x = (chunk.bounds.x + grid_pos.x) * chunk.cell_scale;
+                float y = (chunk.bounds.y + grid_pos.y) * chunk.cell_scale;
+                // @Todo: Use Layer z_depth instead of capturing layer_record
+                Vector3 position = new Vector3(x, y, layer_record.z_depth);
+                CreateFromLvlEntity(entity, position);
+            };
+
+            using (var fs = File.OpenRead(path)) {
+                using (var bin = new BinaryReader(fs)) {
+                    var lvl = new LvlReader(bin);
+                    undo.PushFrame(layer); // Need new frame for generated entities
+
+                    if (!lvl.ReadAll(create_layer, create_entity, out LvlHeader header))
+                        return;
+
+                    view.transform.position = new Vector3() {
+                        x = header.camera.x,
+                        y = header.camera.y,
+                        z = header.camera.z
+                    };
+                }
+            }
+            log = string.Format("Open: {0}", path);
         }
 
         internal void FocusAtCursors() {
@@ -592,6 +683,29 @@ namespace Editor2D
 
             GridAssign(entity, position);
             // @Todo: Invoke(created, created)
+            return entity;
+        }
+
+        GameObject CreateFromLvlEntity(LvlEntity lvl_entity, Vector3 position) {
+            var prefab = palette[lvl_entity.palette_index];
+            var entity = CreateEntity(prefab, prefab.name, position);
+            var parent = ParentContainer(lvl_entity.palette_index);
+            entity.transform.SetParent(parent.transform);
+
+            if (lvl_entity.rotation != 0)
+                entity.transform.rotation = Quaternion.Euler(0, 0, lvl_entity.rotation);
+
+            if (lvl_entity.flip_x || lvl_entity.flip_y) {
+                var sprite = entity.GetComponent<SpriteRenderer>();
+                if (!sprite) {
+                    Debug.LogErrorFormat(
+                        "[e2d] Missing sprite renderer for {0}.",
+                        entity.name);
+                    return null;
+                }
+                sprite.flipX = lvl_entity.flip_x;
+                sprite.flipY = lvl_entity.flip_y;
+            }
             return entity;
         }
 

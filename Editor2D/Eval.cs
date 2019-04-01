@@ -34,6 +34,8 @@ namespace Editor2D
         NextLayer,
         PreviousLayer,
         NewLayer,
+        WriteLvl,
+        OpenLvl,
         Nop
     }
 
@@ -159,6 +161,14 @@ namespace Editor2D
 
                 case Command.TogglePalette:
                     buffer.SwitchMode(Buffer.Mode.Palette);
+                    break;
+
+                case Command.WriteLvl:
+                    buffer.WriteBufferToFile();
+                    break;
+
+                case Command.OpenLvl:
+                    buffer.LoadBufferFromFile();
                     break;
             }
         }

@@ -1,10 +1,16 @@
 using System;
 using UnityEngine;
+using UnityEditor;
 
 namespace Editor2D
 {
     public class LevelEditor : MonoBehaviour
     {
+        [Header("Level")]
+        [SerializeField] string Name     = "My_Level";
+        [Tooltip("File path to load and save the level as a .lvl file.")]
+        [SerializeField] string Path     = "Assets/my_level.lvl";
+
         [Header("Camera")]
         [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
         [SerializeField] Camera Camera   = null;
@@ -79,6 +85,17 @@ namespace Editor2D
             }
         }
 
+#if UNITY_EDITOR
+        [ContextMenu("Load Level (.lvl)")]
+        void LoadLevel() {
+            if (!Camera) Camera = Camera.main;
+            var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
+            var tmp_buffer = new Buffer(chunk, Palette, Camera, Name, Path);
+            tmp_buffer.LoadBufferFromFile();
+            tmp_buffer.Free();
+        }
+#endif
+
         bool OpenEditor() {
             if (!CanOpen()) {
                 Debug.LogError("[e2d] Failed to open editor.");
@@ -94,7 +111,7 @@ namespace Editor2D
 
             if (buffer == null) {
                 var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
-                buffer = new Buffer(chunk, Palette, Camera);
+                buffer = new Buffer(chunk, Palette, Camera, Name, Path);
 
                 var theme = new Overlay.Theme() {
                     cursor            = T0Cursor,
