@@ -25,6 +25,7 @@ namespace Editor2D
         internal GameObject[,] grid;
         internal GameObject[,] temp;
         internal bool visible;
+        internal float z_depth;
     }
 
     internal struct Chunk
@@ -37,7 +38,7 @@ namespace Editor2D
 
     internal static class ChunkUtil
     {
-        internal static void Realloc(ref Chunk chunk, int num_layers) {
+        internal static void Realloc(ref Chunk chunk, int num_layers, float z = 0) {
             int size_x = chunk.scaled_bounds.width;
             int size_y = chunk.scaled_bounds.height;
 
@@ -45,6 +46,7 @@ namespace Editor2D
                 chunk.layers.Add(new Layer() {
                     grid = new GameObject[size_x, size_y],
                     temp = new GameObject[size_x, size_y],
+                    z_depth = z,
                     visible = true
                 });
             }
@@ -60,7 +62,7 @@ namespace Editor2D
             var objects = FindGameObjects(typeof(SpriteRenderer));
 
             if (objects == null) {
-                Debug.LogError("[e2d] No GameObjects found");
+                Debug.LogError("[e2d] No GameObjects found.");
                 return new Chunk();
             }
 
@@ -86,6 +88,9 @@ namespace Editor2D
                 return chunk;
             }
 
+            Debug.Assert(layer_map.Length == objects.Length);
+            Array.Sort(layer_map, objects);
+
             for (int i = 0; i < objects.Length; i++) {
                 var go = objects[i];
                 Vector3 pos = go.transform.position;
@@ -98,12 +103,22 @@ namespace Editor2D
                     chunk.layers.Add(new Layer() {
                         grid = new GameObject[size_x, size_y],
                         temp = new GameObject[size_x, size_y],
+                        z_depth = pos.z,
                         visible = true
                     });
                 }
 
                 int x = (int)((pos.x - bounds.x) / cell_scale);
                 int y = (int)((pos.y - bounds.y) / cell_scale);
+                float z_depth = chunk.layers[layer_map[i]].z_depth;
+
+                if (z_depth != pos.z) {
+                    Debug.LogWarningFormat(
+                        "[e2d] '{0}' does not have expected z-value of {1}.",
+                        go.name,
+                        z_depth);
+                    go.transform.position = new Vector3(pos.x, pos.y, z_depth);
+                }
 
                 chunk.layers[layer_map[i]].grid[x, y] = go;
             }

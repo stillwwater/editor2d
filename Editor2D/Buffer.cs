@@ -113,8 +113,6 @@ namespace Editor2D
             undo.PushFrame(layer);
             cursors.Sync();
 
-            // @Todo: Keep prefab link
-
             for (int i = 0; i < cursors.Count; i++) {
                 Vector3 position = cursors[i].position;
 
@@ -489,7 +487,7 @@ namespace Editor2D
             Func<int, LvlLayer> find_layer = (l) => {
                 return new LvlLayer() {
                     layer_id = l,
-                    z_depth = 0f // @Todo: Set layer z-depth
+                    z_depth = chunk.layers[l].z_depth
                 };
             };
             Func<int, Vector2Int, GameObject> find_entity = (l, grid_pos) => {
@@ -507,23 +505,19 @@ namespace Editor2D
         }
 
         internal void LoadBufferFromFile() {
-            var layer_record = new LvlLayer();
-
+            chunk.layers.Clear();
             Action<LvlLayer> create_layer = (l) => {
                 if (l.layer_id >= chunk.layers.Count)
-                    ChunkUtil.Realloc(ref chunk, 1);
+                    ChunkUtil.Realloc(ref chunk, 1, l.z_depth);
 
-                // @Todo: Layers are still missing a z-depth component
                 // @Todo: Currently assuming layer_id == index.
-                layer_record = l;
                 layer = l.layer_id;
             };
 
             Action<LvlEntity, Vector2Int> create_entity = (entity, grid_pos) => {
                 float x = (chunk.bounds.x + grid_pos.x) * chunk.cell_scale;
                 float y = (chunk.bounds.y + grid_pos.y) * chunk.cell_scale;
-                // @Todo: Use Layer z_depth instead of capturing layer_record
-                Vector3 position = new Vector3(x, y, layer_record.z_depth);
+                Vector3 position = new Vector3(x, y, chunk.layers[layer].z_depth);
                 CreateFromLvlEntity(entity, position);
             };
 
@@ -675,6 +669,7 @@ namespace Editor2D
             Debug.Assert(entity);
             // @Todo: Set format in options
             entity.name = string.Format("{0}_{1:X3}", name, entityid++);
+            position.z = chunk.layers[layer].z_depth;
             entity.transform.position = position;
 
             entity.SetActive(false);

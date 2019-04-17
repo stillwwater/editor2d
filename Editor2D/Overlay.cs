@@ -210,7 +210,9 @@ namespace Editor2D
         internal static void DrawText(Buffer buffer) {
             // @Todo: Allow mapped cursor to be displayed.
             Vector3 cursor = buffer.cursors[buffer.cursors.Count - 1].position;
-            ui.bar_right.text = string.Format("{0},{1}", cursor.x, cursor.y);
+            float z_depth = buffer.chunk.layers[buffer.layer].z_depth;
+            string z = z_depth == 0 ? "" : string.Format(",{0}", z_depth);
+            ui.bar_right.text = string.Format("{0},{1}{2}", cursor.x, cursor.y, z);
 
             string name = "";
             var selected = buffer.Select(cursor);
