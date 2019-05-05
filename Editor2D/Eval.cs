@@ -122,11 +122,15 @@ namespace Editor2D
                     break;
 
                 case Command.FlipHorizontal:
-                    buffer.Flip(new Vector3(1, 0));
+                    buffer.Flip(new Vector3(0, 1));
                     break;
 
                 case Command.FlipVertical:
-                    buffer.Flip(new Vector3(0, 1));
+                    buffer.Flip(new Vector3(1, 0));
+                    break;
+
+                case Command.Rotate:
+                    buffer.Rotate();
                     break;
 
                 case Command.SelectItem:

@@ -174,26 +174,6 @@ namespace Editor2D
             undo.PopFrame(out _);
         }
 
-        internal void Flip(Vector3 axis) {
-            undo.PushFrame(layer);
-            cursors.Sync();
-            SelectAtCursors(ref selection);
-
-            for (int i = 0; i < selection.Length; i++) {
-                if (!selection[i]) continue;
-                var sprite = selection[i].GetComponent<SpriteRenderer>();
-                Debug.Assert(sprite);
-
-                if (axis.x != 0)
-                    sprite.flipX = !sprite.flipX;
-
-                if (axis.y != 0)
-                    sprite.flipY = !sprite.flipY;
-            }
-
-            undo.PopFrame(out _); // @Todo: undo flip action
-        }
-
         ///
         /// Find palette entry from which this entity was created.
         /// Uses string compare, so the child must share a common
@@ -209,6 +189,43 @@ namespace Editor2D
             }
             prefab = null;
             return -1;
+        }
+
+        internal void Flip(Vector3 axis) {
+            undo.PushFrame(layer);
+            cursors.Sync();
+            SelectAtCursors(ref selection);
+
+            for (int i = 0; i < cursors.Count; i++) {
+                if (i >= selection.Length || !selection[i]) continue;
+                var sprite = selection[i].GetComponent<SpriteRenderer>();
+                Debug.Assert(sprite);
+
+                if (axis.x != 0)
+                    sprite.flipX = !sprite.flipX;
+
+                if (axis.y != 0)
+                    sprite.flipY = !sprite.flipY;
+            }
+
+            undo.PopFrame(out _); // @Todo: undo flip action
+        }
+
+        internal void Rotate() {
+            undo.PushFrame(layer);
+            cursors.Sync();
+            SelectAtCursors(ref selection);
+
+            for (int i = 0; i < cursors.Count; i++) {
+                if (i >= selection.Length || !selection[i]) continue;
+                var entity = selection[i];
+                Vector3 rot = entity.transform.localRotation.eulerAngles;
+
+                if ((rot.z -= 90) >= 360) // Rotate clockwise
+                    rot.z = 0;
+
+                entity.transform.localRotation = Quaternion.Euler(rot);
+            }
         }
 
         internal Vector3 Move(GameObject entity, Vector3 offset) {
@@ -257,11 +274,8 @@ namespace Editor2D
                 if (i >= selection.Length || !selection[i])
                     continue; // Empty selection
 
-                switch (mode) {
-                    case Mode.Grab:
-                        Move(selection[i], offset);
-                        break;
-                }
+                if (mode == Mode.Grab)
+                    Move(selection[i], offset);
             }
             if (mode == Mode.Line) SelectLine(line_origin);
         }
