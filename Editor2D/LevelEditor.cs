@@ -9,7 +9,7 @@ namespace Editor2D
         [Header("Level")]
         [SerializeField] string Name     = "My_Level";
         [Tooltip("File path to load and save the level as a .lvl file.")]
-        [SerializeField] string Path     = "Assets/my_level.lvl";
+        [SerializeField] string Path     = "Assets/my_level.lvl.bytes";
 
         [Header("Camera")]
         [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
@@ -32,6 +32,10 @@ namespace Editor2D
         [SerializeField] bool DestroyOnClose   = false;
         [Tooltip("Open editor2d on startup.")]
         [SerializeField] bool OpenOnStart      = false;
+        [Tooltip("Set sprite sortingOrder based on current layer.")]
+        [SerializeField] bool SetSortingOrder  = true;
+        [Tooltip("Set camera background color from lvl file.")]
+        [SerializeField] bool SetCameraColor  = false;
 
         [Header("Tile Set")]
         [Tooltip("Prefabs that can be instantiated by the editor.")]
@@ -90,7 +94,7 @@ namespace Editor2D
         void LoadLevel() {
             if (!Camera) Camera = Camera.main;
             var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
-            var tmp_buffer = new Buffer(chunk, Palette, Camera, Name, Path);
+            var tmp_buffer = CreateBuffer(ref chunk);
             tmp_buffer.LoadBufferFromFile();
             tmp_buffer.Free();
         }
@@ -111,7 +115,7 @@ namespace Editor2D
 
             if (buffer == null) {
                 var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
-                buffer = new Buffer(chunk, Palette, Camera, Name, Path);
+                buffer = CreateBuffer(ref chunk);
 
                 var theme = new Overlay.Theme() {
                     cursor            = T0Cursor,
@@ -218,6 +222,16 @@ namespace Editor2D
 
             Vector3 size = new Vector3(area.width * TileSize, area.height * TileSize);
             Gizmos.DrawWireCube(pos, size);
+        }
+
+        Buffer CreateBuffer(ref Chunk chunk) {
+            var config = new Buffer.Config() {
+                name = Name,
+                path = Path,
+                set_sorting_order = SetSortingOrder,
+                set_camera_color = SetCameraColor
+            };
+            return new Buffer(chunk, Palette, Camera, config);
         }
     }
 }

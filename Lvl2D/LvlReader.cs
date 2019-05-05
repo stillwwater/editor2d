@@ -30,10 +30,10 @@ namespace Lvl2D
                 y = reader.ReadSingle(),
                 z = reader.ReadSingle(),
                 ortho_size = reader.ReadSingle(),
+                set_color = reader.ReadBoolean(),
                 r = reader.ReadByte(),
                 g = reader.ReadByte(),
-                b = reader.ReadByte(),
-                set_color = reader.ReadBoolean()
+                b = reader.ReadByte()
             };
             header.name   = reader.ReadString();
             header.author = reader.ReadString();

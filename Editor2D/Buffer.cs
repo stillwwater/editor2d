@@ -19,6 +19,14 @@ namespace Editor2D
             Camera
         }
 
+        public struct Config
+        {
+            public string name;
+            public string path;
+            public bool set_sorting_order;
+            public bool set_camera_color;
+        }
+
         internal readonly GameObject[] palette;
         internal readonly Cursors cursors;
         internal readonly Undo undo;
@@ -31,25 +39,18 @@ namespace Editor2D
         readonly GameObject[] prefab_parents;
         readonly List<GameObject> deletion_pool;
         readonly Camera view;
-        readonly string name;
-        readonly string path;
+        readonly Config config;
+
         int entityid;
         Vector4 selection_rect;
         int line_origin;
         GameObject[] selection;
 
-        internal Buffer(
-            Chunk chunk,
-            GameObject[] palette,
-            Camera view,
-            string name,
-            string path)
-        {
+        internal Buffer(Chunk chunk, GameObject[] palette, Camera view, Config config) {
             this.view    = view;
             this.chunk   = chunk;
             this.palette = palette;
-            this.name    = name;
-            this.path    = path;
+            this.config  = config;
             undo = new Undo();
             cursors = new Cursors(chunk.bounds, chunk.cell_scale);
             deletion_pool = new List<GameObject>();
@@ -466,20 +467,24 @@ namespace Editor2D
 
         internal void WriteBufferToFile() {
             const string signature = "e2d (lvl2d)";
+            Color32 view_color = (Color32)view.backgroundColor;
 
             var header = new LvlHeader() {
                 palette = (ushort)palette.Length,
                 layers  = (ushort)chunk.layers.Count,
                 width   = (ushort)(chunk.scaled_bounds.width),
                 height  = (ushort)(chunk.scaled_bounds.height),
-                name    = name,
+                name    = config.name,
                 author  = signature,
                 camera  = new LvlHeader.Camera() {
                     x = view.transform.position.x,
                     y = view.transform.position.y,
                     z = view.transform.position.z,
                     ortho_size = view.orthographicSize,
-                    set_color = false // @Todo: Option to load camera background color
+                    set_color = config.set_camera_color,
+                    r = view_color.r,
+                    g = view_color.g,
+                    b = view_color.b
                 }
             };
 
@@ -495,13 +500,13 @@ namespace Editor2D
                 return Select(grid_pos);
             };
 
-            using (var fs = File.Open(path, FileMode.Create)) {
+            using (var fs = File.Open(config.path, FileMode.Create)) {
                 using (var bin = new BinaryWriter(fs)) {
                     var lvl = new LvlWriter(bin);
                     lvl.WriteAll(header, find_layer, find_entity, find_prefab);
                 }
             }
-            log = string.Format("Write: {0}", path);
+            log = string.Format("Write: {0}", config.path);
         }
 
         internal void LoadBufferFromFile() {
@@ -521,7 +526,7 @@ namespace Editor2D
                 CreateFromLvlEntity(entity, position);
             };
 
-            using (var fs = File.OpenRead(path)) {
+            using (var fs = File.OpenRead(config.path)) {
                 using (var bin = new BinaryReader(fs)) {
                     var lvl = new LvlReader(bin);
                     undo.PushFrame(layer); // Need new frame for generated entities
@@ -529,14 +534,21 @@ namespace Editor2D
                     if (!lvl.ReadAll(create_layer, create_entity, out LvlHeader header))
                         return;
 
-                    view.transform.position = new Vector3() {
-                        x = header.camera.x,
-                        y = header.camera.y,
-                        z = header.camera.z
-                    };
+                    view.transform.position = new Vector3(
+                        header.camera.x,
+                        header.camera.y,
+                        header.camera.z);
+
+                    if (config.set_camera_color) {
+                        view.backgroundColor = new Color32(
+                            r: header.camera.r,
+                            g: header.camera.g,
+                            b: header.camera.b,
+                            a: 0);
+                    }
                 }
             }
-            log = string.Format("Open: {0}", path);
+            log = string.Format("Open: {0}", config.path);
         }
 
         internal void FocusAtCursors() {
