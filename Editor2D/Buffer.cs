@@ -174,6 +174,26 @@ namespace Editor2D
             undo.PopFrame(out _);
         }
 
+        internal void Flip(Vector3 axis) {
+            undo.PushFrame(layer);
+            cursors.Sync();
+            SelectAtCursors(ref selection);
+
+            for (int i = 0; i < selection.Length; i++) {
+                if (!selection[i]) continue;
+                var sprite = selection[i].GetComponent<SpriteRenderer>();
+                Debug.Assert(sprite);
+
+                if (axis.x != 0)
+                    sprite.flipX = !sprite.flipX;
+
+                if (axis.y != 0)
+                    sprite.flipY = !sprite.flipY;
+            }
+
+            undo.PopFrame(out _); // @Todo: undo flip action
+        }
+
         ///
         /// Find palette entry from which this entity was created.
         /// Uses string compare, so the child must share a common

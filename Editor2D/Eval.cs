@@ -13,7 +13,8 @@ namespace Editor2D
         Erase,
         Clone,
         Rotate,
-        Flip,
+        FlipHorizontal,
+        FlipVertical,
         Undo,
         NormalMode,
         FocusView,
@@ -118,6 +119,14 @@ namespace Editor2D
 
                 case Command.Clone:
                     buffer.Clone();
+                    break;
+
+                case Command.FlipHorizontal:
+                    buffer.Flip(new Vector3(1, 0));
+                    break;
+
+                case Command.FlipVertical:
+                    buffer.Flip(new Vector3(0, 1));
                     break;
 
                 case Command.SelectItem:
