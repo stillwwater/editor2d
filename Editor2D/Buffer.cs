@@ -510,7 +510,7 @@ namespace Editor2D
                 if (l.layer_id >= chunk.layers.Count)
                     ChunkUtil.Realloc(ref chunk, 1, l.z_depth);
 
-                // @Todo: Currently assuming layer_id == index.
+                // Assume layer_id as the layer index
                 layer = l.layer_id;
             };
 
@@ -667,6 +667,10 @@ namespace Editor2D
             var entity = GameObject.Instantiate(original);
 #endif
             Debug.Assert(entity);
+
+            // @Todo: Option to not set sorting order on creation
+            entity.GetComponent<SpriteRenderer>().sortingOrder = layer;
+
             // @Todo: Set format in options
             entity.name = string.Format("{0}_{1:X3}", name, entityid++);
             position.z = chunk.layers[layer].z_depth;

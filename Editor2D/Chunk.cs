@@ -6,16 +6,13 @@ namespace Editor2D
 {
     ///
     /// Determines how the level editor puts different
-    /// objects in layers. If not using an editor tag
-    /// component the layer is determined by either:
+    /// objects in separate layers.
     ///
-    /// SORTING_LAYER: Sorting layer in sprite renderer
     /// ORDER_IN_LAYER: Order in layer in sprite renderer
     /// Z_DEPTH: The z axis position.
     ///
     internal enum Sorting
     {
-        SORTING_LAYER,
         ORDER_IN_LAYER,
         Z_DEPTH,
     }
@@ -160,13 +157,12 @@ namespace Editor2D
                     case Sorting.ORDER_IN_LAYER:
                         layer = go.GetComponent<SpriteRenderer>().sortingOrder;
                         break;
-                    case Sorting.SORTING_LAYER:
-                        layer = go.GetComponent<SpriteRenderer>().sortingLayerID;
-                        break;
-                    default:
                     case Sorting.Z_DEPTH:
                         // Truncating float to int, z-depth 1.1 will be the same as 1.0.
                         layer = (int)go.transform.position.z;
+                        break;
+                    default:
+                        layer = 0;
                         break;
                 }
 
