@@ -13,7 +13,8 @@ namespace Editor2D
 
         [Header("Camera")]
         [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
-        [SerializeField] Camera Camera   = null;
+        [SerializeField] Camera Camera       = null;
+        [SerializeField] float ZoomIncrement = 0.25f;
 
         [Header("Grid")]
         [Tooltip("Smallest editable area in world units.")]
@@ -229,7 +230,8 @@ namespace Editor2D
                 name = Name,
                 path = Path,
                 set_sorting_order = SetSortingOrder,
-                set_camera_color = SetCameraColor
+                set_camera_color = SetCameraColor,
+                zoom_increment = ZoomIncrement
             };
             return new Buffer(chunk, Palette, Camera, config);
         }

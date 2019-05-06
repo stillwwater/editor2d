@@ -37,6 +37,8 @@ namespace Editor2D
         NewLayer,
         WriteLvl,
         OpenLvl,
+        ZoomIn,
+        ZoomOut,
         Nop
     }
 
@@ -182,6 +184,14 @@ namespace Editor2D
 
                 case Command.OpenLvl:
                     buffer.LoadBufferFromFile();
+                    break;
+
+                case Command.ZoomIn:
+                    buffer.ZoomView(+1);
+                    break;
+
+                case Command.ZoomOut:
+                    buffer.ZoomView(-1);
                     break;
             }
         }

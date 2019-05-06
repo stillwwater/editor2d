@@ -37,7 +37,7 @@ namespace Editor2D
         [SerializeField] float LongPressDelay = 0.2f;
 
         [Tooltip("Interval between retriggers when holding a key down.")]
-        [SerializeField] float RetriggerDelay = 0.1f;
+        [SerializeField] float RetriggerDelay = 0.05f;
 
         [SerializeField]
         KeyBinding[] KeyBindings = {
@@ -80,6 +80,9 @@ namespace Editor2D
             new KeyBinding(Modifier.Control, KeyCode.K,          Command.PreviousLayer   ),
             new KeyBinding(Modifier.Control, KeyCode.W,          Command.WriteLvl        ),
             new KeyBinding(Modifier.Control, KeyCode.O,          Command.OpenLvl         ),
+            new KeyBinding(Modifier.Control, KeyCode.Equals,     Command.ZoomIn          ),
+            new KeyBinding(Modifier.Control, KeyCode.Plus,       Command.ZoomIn          ),
+            new KeyBinding(Modifier.Control, KeyCode.Minus,      Command.ZoomOut         ),
         };
 
         float long_press_time;

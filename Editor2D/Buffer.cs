@@ -25,6 +25,7 @@ namespace Editor2D
             public string path;
             public bool set_sorting_order;
             public bool set_camera_color;
+            public float zoom_increment;
         }
 
         internal readonly GameObject[] palette;
@@ -221,7 +222,7 @@ namespace Editor2D
                 var entity = selection[i];
                 Vector3 rot = entity.transform.localRotation.eulerAngles;
 
-                if ((rot.z -= 90) >= 360) // Rotate clockwise
+                if ((rot.z -= 90) <= -360) // Rotate clockwise
                     rot.z = 0;
 
                 entity.transform.localRotation = Quaternion.Euler(rot);
@@ -605,6 +606,21 @@ namespace Editor2D
             // Focus view on the center of the selected region
             float z = view.transform.position.z;
             view.transform.position = new Vector3(mid.x, mid.y, z);
+        }
+
+        internal void ZoomView(int direction) {
+            if (!view.orthographic) {
+                Debug.LogWarning("[e2d] Not using an orthographic camera.");
+                return;
+            }
+
+            FocusAtCursors();
+            float size = view.orthographicSize - config.zoom_increment * direction;
+            float min = Mathf.Abs(config.zoom_increment);
+            float max = Mathf.Abs(config.zoom_increment * 100.0f);
+
+            view.orthographicSize = Mathf.Clamp(size, min, max);
+            log = view.orthographicSize.ToString("0.00");
         }
 
         bool SelectAtCursors(ref GameObject[] selection) {
