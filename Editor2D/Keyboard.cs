@@ -58,6 +58,7 @@ namespace Editor2D
             new KeyBinding(Modifier.Alt,     KeyCode.A,          Command.DeselectAll     ),
             new KeyBinding(Modifier.None,    KeyCode.V,          Command.CreateVertex    ),
             new KeyBinding(Modifier.None,    KeyCode.G,          Command.ToggleGrab      ),
+            new KeyBinding(Modifier.Shift,   KeyCode.C,          Command.ToggleCamera    ),
             new KeyBinding(Modifier.None,    KeyCode.B,          Command.ToggleBoxSelect ),
             new KeyBinding(Modifier.None,    KeyCode.P,          Command.TogglePalette   ),
             new KeyBinding(Modifier.Alt,     KeyCode.V,          Command.ToggleLineSelect),

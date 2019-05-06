@@ -28,6 +28,12 @@ namespace Editor2D
             public float zoom_increment;
         }
 
+        struct View
+        {
+            internal Vector3 position;
+            internal float orthographic_size;
+        }
+
         internal readonly GameObject[] palette;
         internal readonly Cursors cursors;
         internal readonly Undo undo;
@@ -46,6 +52,7 @@ namespace Editor2D
         Vector4 selection_rect;
         int line_origin;
         GameObject[] selection;
+        View saved_view;
 
         internal Buffer(Chunk chunk, GameObject[] palette, Camera view, Config config) {
             this.view    = view;
@@ -57,6 +64,11 @@ namespace Editor2D
             deletion_pool = new List<GameObject>();
             selection = new GameObject[16];
             prefab_parents = new GameObject[palette.Length];
+
+            saved_view = new View() {
+                position = view.transform.position,
+                orthographic_size = view.orthographicSize
+            };
         }
 
         internal void Free() {
@@ -80,6 +92,10 @@ namespace Editor2D
 
                 case Mode.Grab:
                     ToggleTransformMode(new_mode);
+                    break;
+
+                case Mode.Camera:
+                    ToggleCameraMode(new_mode);
                     break;
 
                 case Mode.Box:
@@ -270,6 +286,11 @@ namespace Editor2D
                         position = cursors[i].position + offset,
                         pinned   = false
                     });
+                }
+
+                if (mode == Mode.Camera) {
+                    view.transform.position += offset;
+                    continue;
                 }
 
                 if (i >= selection.Length || !selection[i])
@@ -512,10 +533,10 @@ namespace Editor2D
                 name    = config.name,
                 author  = signature,
                 camera  = new LvlHeader.Camera() {
-                    x = view.transform.position.x,
-                    y = view.transform.position.y,
-                    z = view.transform.position.z,
-                    ortho_size = view.orthographicSize,
+                    x = saved_view.position.x,
+                    y = saved_view.position.y,
+                    z = saved_view.position.z,
+                    ortho_size = saved_view.orthographic_size,
                     set_color = config.set_camera_color,
                     r = view_color.r,
                     g = view_color.g,
@@ -569,10 +590,13 @@ namespace Editor2D
                     if (!lvl.ReadAll(create_layer, create_entity, out LvlHeader header))
                         return;
 
-                    view.transform.position = new Vector3(
+
+                    saved_view.position = new Vector3(
                         header.camera.x,
                         header.camera.y,
                         header.camera.z);
+
+                    saved_view.orthographic_size = header.camera.ortho_size;
 
                     if (config.set_camera_color) {
                         view.backgroundColor = new Color32(
@@ -583,6 +607,7 @@ namespace Editor2D
                     }
                 }
             }
+            RestoreView();
             log = string.Format("Open: {0}", config.path);
         }
 
@@ -621,6 +646,13 @@ namespace Editor2D
 
             view.orthographicSize = Mathf.Clamp(size, min, max);
             log = view.orthographicSize.ToString("0.00");
+        }
+
+        internal void RestoreView() {
+            view.transform.position = saved_view.position;
+            view.orthographicSize   = saved_view.orthographic_size;
+            cursors.Clear();
+            cursors.Add((Vector2)view.transform.position);
         }
 
         bool SelectAtCursors(ref GameObject[] selection) {
@@ -872,10 +904,10 @@ namespace Editor2D
             Vector3 min_vis = view.WorldToViewportPoint(min);
             Vector3 max_vis = view.WorldToViewportPoint(max);
 
-            if ((min_vis.x >= 0 && min_vis.x <= 1)
-                && (min_vis.y >= 0 && min_vis.y <= 1)
-                && (max_vis.x >= 0 && max_vis.x <= 1)
-                && (max_vis.y >= 0 && max_vis.y <= 1)) {
+            if ((min_vis.x > 0 && min_vis.x < 1)
+                && (min_vis.y > 0 && min_vis.y < 1)
+                && (max_vis.x > 0 && max_vis.x < 1)
+                && (max_vis.y > 0 && max_vis.y < 1)) {
                 // Area within camera viewport
                 return;
             }
@@ -927,6 +959,18 @@ namespace Editor2D
                 return;
             }
             LineCreateVertex();
+            mode = new_mode;
+        }
+
+        void ToggleCameraMode(Mode new_mode) {
+            if (mode == Mode.Camera) {
+                mode = Mode.Normal;
+                saved_view = new View() {
+                    position = view.transform.position,
+                    orthographic_size = view.orthographicSize
+                };
+                return;
+            }
             mode = new_mode;
         }
     }

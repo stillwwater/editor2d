@@ -92,6 +92,10 @@ namespace Editor2D
                     buffer.SwitchMode(Buffer.Mode.Normal);
                     break;
 
+                case Command.ToggleCamera:
+                    buffer.SwitchMode(Buffer.Mode.Camera);
+                    break;
+
                 case Command.ToggleBoxSelect:
                     buffer.SwitchMode(Buffer.Mode.Box);
                     break;

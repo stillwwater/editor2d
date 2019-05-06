@@ -143,6 +143,7 @@ namespace Editor2D
         bool CloseEditor() {
             if (buffer == null) return false;
             if (DestroyOnClose) buffer.Free();
+            buffer.RestoreView();
             Overlay.ClearScreen();
             return true;
         }
