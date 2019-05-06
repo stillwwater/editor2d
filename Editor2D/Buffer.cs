@@ -23,6 +23,7 @@ namespace Editor2D
         {
             public string name;
             public string path;
+            public string entity_name_format;
             public bool set_sorting_order;
             public bool set_camera_color;
             public float zoom_increment;
@@ -766,7 +767,7 @@ namespace Editor2D
             entity.GetComponent<SpriteRenderer>().sortingOrder = layer;
 
             // @Todo: Set format in options
-            entity.name = string.Format("{0}_{1:X3}", name, entityid++);
+            entity.name = string.Format(config.entity_name_format, name, entityid++);
             position.z = chunk.layers[layer].z_depth;
             entity.transform.position = position;
 

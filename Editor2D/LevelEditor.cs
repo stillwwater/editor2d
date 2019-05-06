@@ -10,6 +10,8 @@ namespace Editor2D
         [SerializeField] string Name     = "My_Level";
         [Tooltip("File path to load and save the level as a .lvl file.")]
         [SerializeField] string Path     = "Assets/my_level.lvl.bytes";
+        [Tooltip("Name format for created entities (default: {prefab}_{enittyid}).")]
+        [SerializeField] string EntityNameFormat = "{0}_{1:X3}";
 
         [Header("Camera")]
         [Tooltip("The primary camera. If null the editor will attempt to find it on startup.")]
@@ -230,9 +232,10 @@ namespace Editor2D
             var config = new Buffer.Config() {
                 name = Name,
                 path = Path,
-                set_sorting_order = SetSortingOrder,
-                set_camera_color = SetCameraColor,
-                zoom_increment = ZoomIncrement
+                entity_name_format = EntityNameFormat,
+                set_sorting_order  = SetSortingOrder,
+                set_camera_color   = SetCameraColor,
+                zoom_increment     = ZoomIncrement
             };
             return new Buffer(chunk, Palette, Camera, config);
         }
