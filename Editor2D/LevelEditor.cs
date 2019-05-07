@@ -67,6 +67,8 @@ namespace Editor2D
         [SerializeField] GameObject T1GridSquare = null;
         [SerializeField] GameObject T2GridActive = null;
         [SerializeField] GameObject T3Background = null;
+        [Tooltip("Show cursor position relative to chunk bounds.")]
+        [SerializeField] bool RelativePosition   = true;
 
         [Header("Preview")]
         [SerializeField] Overlay.PreviewDisplay PreviewPosition = Overlay.PreviewDisplay.Left;
@@ -140,7 +142,8 @@ namespace Editor2D
                     palette_area      = new Vector2Int(PaletteWidth, PaletteHeight),
                     palette_display   = PreviewPosition,
                     show_preview_text = ShowPreviewText,
-                    preview_width     = PreviewWidth
+                    preview_width     = PreviewWidth,
+                    relative_position = RelativePosition
                 };
 
                 Overlay.Initialize(transform, theme, buffer.palette);
