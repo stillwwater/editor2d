@@ -60,6 +60,7 @@ namespace Editor2D
         internal int palette_index;
         internal string log;
         internal Chunk chunk;
+        internal float random_threshold = 0.5f;
 
         readonly GameObject[] prefab_parents;
         readonly List<GameObject> deletion_pool;
@@ -442,6 +443,21 @@ namespace Editor2D
                 position = position,
                 pinned   = false
             });
+        }
+
+        internal void RandomDeselect() {
+            int total = cursors.Count;
+            int deselected = 0;
+
+            for (int i = cursors.Count - 1; i >= 0 && cursors.Count > 1; i--) {
+                if (UnityEngine.Random.value <= random_threshold) {
+                    cursors.RemoveRange(i, 1, sync: false);
+                    deselected++;
+                }
+            }
+            cursors.Sync();
+            Debug.Assert(total > 0);
+            log = (deselected/(float)total).ToString("0.00");
         }
 
         internal void PinCursor() {

@@ -23,6 +23,9 @@ namespace Editor2D
         SelectAll,
         DeselectItem,
         DeselectAll,
+        RandomDeselect,
+        RandomInc,
+        RandomDec,
         CreateVertex,
         ToggleCamera,
         ToggleBoxSelect,
@@ -160,6 +163,22 @@ namespace Editor2D
 
                 case Command.DeselectAll:
                     buffer.DeselectAll();
+                    break;
+
+                case Command.RandomDeselect:
+                    buffer.RandomDeselect();
+                    break;
+
+                case Command.RandomInc:
+                    buffer.random_threshold =
+                        Mathf.Clamp01(buffer.random_threshold + 0.05f);
+                    buffer.log = buffer.random_threshold.ToString("0.00");
+                    break;
+
+                case Command.RandomDec:
+                    buffer.random_threshold =
+                        Mathf.Clamp01(buffer.random_threshold - 0.05f);
+                    buffer.log = buffer.random_threshold.ToString("0.00");
                     break;
 
                 case Command.CreateVertex:
