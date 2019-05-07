@@ -87,6 +87,8 @@ namespace Editor2D
                 position = view.transform.position,
                 orthographic_size = view.orthographicSize
             };
+
+            cursors.Add((Vector2)view.transform.position - Vector2.one);
         }
 
         internal void Free() {
@@ -675,7 +677,7 @@ namespace Editor2D
             view.transform.position = saved_view.position;
             view.orthographicSize   = saved_view.orthographic_size;
             cursors.Clear();
-            cursors.Add((Vector2)view.transform.position);
+            cursors.Add((Vector2)view.transform.position - Vector2.one);
         }
 
         bool SelectAtCursors(ref GameObject[] selection) {

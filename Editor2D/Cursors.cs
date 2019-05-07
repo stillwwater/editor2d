@@ -54,7 +54,6 @@ namespace Editor2D
             this.cell_scale = cell_scale;
             data = new List<Cursor>(1);
             duplicates = new Dictionary<ulong, int>();
-            Add(Vector3.zero); // @Todo: Camera position
             synced = true;
         }
 
