@@ -7,6 +7,17 @@ using Lvl2D;
 
 namespace Editor2D
 {
+    public delegate void EntityCreatedHandler(Buffer sender, GameObject entity);
+    public delegate void EntityDestroyedHandler(Buffer sender, GameObject entity);
+
+    public delegate void EntityMoveHandler(
+        Buffer sender,
+        GameObject entity,
+        Vector3 new_position);
+
+    public delegate void FileSavedHandler(Buffer sender, string path);
+    public delegate void FileOpenedHandler(Buffer sender, string path);
+
     public class Buffer
     {
         public enum Mode
@@ -35,7 +46,13 @@ namespace Editor2D
             internal float orthographic_size;
         }
 
-        internal readonly GameObject[] palette;
+        public static EntityCreatedHandler OnEntityCreated;
+        public static EntityDestroyedHandler OnEntityDestroyed;
+        public static EntityMoveHandler OnEntityMove;
+        public static FileSavedHandler OnFileSaved;
+        public static FileOpenedHandler OnFileOpened;
+
+        public readonly GameObject[] palette;
         internal readonly Cursors cursors;
         internal readonly Undo undo;
         internal Mode mode;
@@ -149,15 +166,9 @@ namespace Editor2D
             undo.PushFrame(layer);
 
             for (int i = 0; i < cursors.Count; i++) {
-                Vector2Int grid_pos;
+                var entity = Select(cursors[i].position);
+                if (!entity) continue;
 
-                // @Cleanup: unnecessary
-                if (!MapCoordinate(cursors[i].position, out grid_pos)) {
-                    continue;
-                }
-
-                // @Todo: Null check
-                var entity = Select(grid_pos);
                 undo.RegisterState(entity);
                 Kill(entity);
             }
@@ -247,8 +258,13 @@ namespace Editor2D
         }
 
         internal Vector3 Move(GameObject entity, Vector3 offset) {
-            GridAssign(entity, entity.transform.position + offset);
-            entity.transform.position += offset;
+            Vector3 position = entity.transform.position + offset;
+            GridAssign(entity, position);
+
+            if (OnEntityMove != null)
+                OnEntityMove(this, entity, position);
+
+            entity.transform.position = position;
             return entity.transform.position;
         }
 
@@ -564,6 +580,9 @@ namespace Editor2D
                 }
             }
             log = string.Format("Write: {0}", config.path);
+
+            if (OnFileSaved != null)
+                OnFileSaved(this, config.path);
         }
 
         internal void LoadBufferFromFile() {
@@ -610,6 +629,9 @@ namespace Editor2D
             }
             RestoreView();
             log = string.Format("Open: {0}", config.path);
+
+            if (OnFileOpened != null)
+                OnFileOpened(this, config.path);
         }
 
         internal void FocusAtCursors() {
@@ -763,10 +785,9 @@ namespace Editor2D
 #endif
             Debug.Assert(entity);
 
-            // @Todo: Option to not set sorting order on creation
-            entity.GetComponent<SpriteRenderer>().sortingOrder = layer;
+            if (config.set_sorting_order)
+                entity.GetComponent<SpriteRenderer>().sortingOrder = layer;
 
-            // @Todo: Set format in options
             entity.name = string.Format(config.entity_name_format, name, entityid++);
             position.z = chunk.layers[layer].z_depth;
             entity.transform.position = position;
@@ -776,7 +797,10 @@ namespace Editor2D
             entity.SetActive(true);
 
             GridAssign(entity, position);
-            // @Todo: Invoke(created, created)
+
+            if (OnEntityCreated != null)
+                OnEntityCreated(this, entity);
+
             return entity;
         }
 
@@ -818,6 +842,9 @@ namespace Editor2D
             if (!entity) return;
             entity.SetActive(false);
             deletion_pool.Add(entity);
+
+            if (OnEntityDestroyed != null)
+                OnEntityDestroyed(this, entity);
         }
 
         void Revive(GameObject entity) {

@@ -4,8 +4,14 @@ using UnityEditor;
 
 namespace Editor2D
 {
+    public delegate void EditorOpenedHandler(LevelEditor sender, Buffer buffer);
+    public delegate void EditorClosedHandler(LevelEditor sender, Buffer buffer);
+
     public class LevelEditor : MonoBehaviour
     {
+        public static event EditorOpenedHandler OnEditorOpened;
+        public static event EditorClosedHandler OnEditorClosed;
+
         [Header("Level")]
         [SerializeField] string Name     = "My_Level";
         [Tooltip("File path to load and save the level as a .lvl file.")]
@@ -139,6 +145,10 @@ namespace Editor2D
 
                 Overlay.Initialize(transform, theme, buffer.palette);
             }
+
+            if (OnEditorOpened != null)
+                OnEditorOpened(this, buffer);
+
             return true;
         }
 
@@ -147,6 +157,10 @@ namespace Editor2D
             if (DestroyOnClose) buffer.Free();
             buffer.RestoreView();
             Overlay.ClearScreen();
+
+            if (OnEditorClosed != null)
+                OnEditorClosed(this, buffer);
+
             return true;
         }
 
