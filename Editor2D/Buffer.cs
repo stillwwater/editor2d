@@ -696,6 +696,34 @@ namespace Editor2D
             cursors.Add((Vector2)view.transform.position - Vector2.one);
         }
 
+        internal void MoveLayerZ(float z_offset) {
+            var current = chunk.layers[layer];
+            chunk.layers[layer] = new Layer() {
+                grid = current.grid,
+                temp = current.temp,
+                visible = current.visible,
+                z_depth = current.z_depth + z_offset
+            };
+
+            SelectAllInLayer();
+            GridRestoreAtCursors(cursors);
+
+            for (int i = 0; i < cursors.Count; i++) {
+                var entity = Select(cursors[i].position);
+                if (!entity) continue;
+
+                Vector3 pos = entity.transform.position;
+                pos.z += z_offset;
+                entity.transform.position = pos;
+            }
+
+            foreach (var entity in deletion_pool) {
+                Vector3 pos = entity.transform.position;
+                pos.z += z_offset;
+                entity.transform.position = pos;
+            }
+        }
+
         bool SelectAtCursors(ref GameObject[] selection) {
             if (selection.Length < cursors.Count) {
                 // Reallocate selection buffer

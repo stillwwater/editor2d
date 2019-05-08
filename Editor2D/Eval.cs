@@ -39,6 +39,8 @@ namespace Editor2D
         NextLayer,
         PreviousLayer,
         NewLayer,
+        LayerZInc,
+        LayerZDec,
         WriteLvl,
         OpenLvl,
         ZoomIn,
@@ -92,6 +94,14 @@ namespace Editor2D
                 case Command.NewLayer:
                     ChunkUtil.Realloc(ref buffer.chunk, 1);
                     buffer.layer = buffer.chunk.layers.Count - 1;
+                    break;
+
+                case Command.LayerZInc:
+                    buffer.MoveLayerZ(+1.0f);
+                    break;
+
+                case Command.LayerZDec:
+                    buffer.MoveLayerZ(-1.0f);
                     break;
 
                 case Command.ToggleGrab:
