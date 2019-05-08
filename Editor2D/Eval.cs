@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Editor2D
@@ -42,14 +43,20 @@ namespace Editor2D
         OpenLvl,
         ZoomIn,
         ZoomOut,
+        MacroPlay,
+        MacroStart,
+        MacroStop,
         Nop
     }
 
     public static class Eval
     {
-        internal static void Run(Command cmd, Buffer buffer) {
+        static List<Command> recording = new List<Command>();
+        static bool record;
+
+        public static void Run(Command cmd, Buffer buffer) {
             switch (cmd) {
-                case Command.Nop: break;
+                case Command.Nop: return;
                 case Command.Up:
                     HandleTransform(buffer, Vector2.up);
                     break;
@@ -216,7 +223,28 @@ namespace Editor2D
                 case Command.ZoomOut:
                     buffer.ZoomView(-1);
                     break;
+
+                case Command.MacroPlay:
+                    record = false;
+                    foreach (var c in recording)
+                        Run(c, buffer);
+                    buffer.log = string.Format("{0} actions", recording.Count);
+                    return;
+
+                case Command.MacroStart:
+                    recording.Clear();
+                    record = true;
+                    buffer.log = "recording...";
+                    return;
+
+                case Command.MacroStop:
+                    record = false;
+                    buffer.log = string.Format("{0} actions", recording.Count);
+                    return;
             }
+
+            if (record)
+                recording.Add(cmd);
         }
 
         static void HandleTransform(Buffer buffer, Vector2 direction) {

@@ -72,7 +72,7 @@ namespace Editor2D
             new KeyBinding(Modifier.None,    KeyCode.W,          Command.Write           ),
             new KeyBinding(Modifier.None,    KeyCode.U,          Command.Undo            ),
             new KeyBinding(Modifier.None,    KeyCode.E,          Command.Erase           ),
-            new KeyBinding(Modifier.Shift,   KeyCode.F,          Command.FocusView       ),
+            new KeyBinding(Modifier.None,    KeyCode.F,          Command.FocusView       ),
             new KeyBinding(Modifier.Control, KeyCode.N,          Command.NewLayer        ),
             new KeyBinding(Modifier.Control, KeyCode.RightArrow, Command.NextModel       ),
             new KeyBinding(Modifier.Control, KeyCode.LeftArrow,  Command.PreviousModel   ),
@@ -87,6 +87,9 @@ namespace Editor2D
             new KeyBinding(Modifier.Control, KeyCode.Equals,     Command.ZoomIn          ),
             new KeyBinding(Modifier.Control, KeyCode.Plus,       Command.ZoomIn          ),
             new KeyBinding(Modifier.Control, KeyCode.Minus,      Command.ZoomOut         ),
+            new KeyBinding(Modifier.None,    KeyCode.M,          Command.MacroPlay       ),
+            new KeyBinding(Modifier.Control, KeyCode.M,          Command.MacroStart      ),
+            new KeyBinding(Modifier.Alt,     KeyCode.M,          Command.MacroStop       ),
         };
 
         float long_press_time;

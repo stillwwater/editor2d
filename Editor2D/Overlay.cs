@@ -210,15 +210,16 @@ namespace Editor2D
 
         internal static void DrawText(Buffer buffer) {
             Vector3 cursor = buffer.cursors[buffer.cursors.Count - 1].position;
+            Vector3 pos = cursor;
 
             if (theme.relative_position) {
-                cursor.x = (cursor.x - buffer.chunk.bounds.x) / buffer.chunk.cell_scale;
-                cursor.y = (cursor.y - buffer.chunk.bounds.y) / buffer.chunk.cell_scale;
+                pos.x = (cursor.x - buffer.chunk.bounds.x) / buffer.chunk.cell_scale;
+                pos.y = (cursor.y - buffer.chunk.bounds.y) / buffer.chunk.cell_scale;
             }
 
             float z_depth = buffer.chunk.layers[buffer.layer].z_depth;
             string z = z_depth == 0 ? "" : string.Format(",{0}", z_depth);
-            ui.bar_right.text = string.Format("{0},{1}{2}", cursor.x, cursor.y, z);
+            ui.bar_right.text = string.Format("{0},{1}{2}", pos.x, pos.y, z);
 
             string name = "";
             var selected = buffer.Select(cursor);
