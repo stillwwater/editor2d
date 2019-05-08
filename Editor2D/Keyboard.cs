@@ -143,6 +143,8 @@ namespace Editor2D
             switch (key) {
                 case KeyCode.LeftControl:
                 case KeyCode.RightControl:
+                case KeyCode.LeftCommand:
+                case KeyCode.RightCommand:
                 case KeyCode.LeftShift:
                 case KeyCode.RightShift:
                 case KeyCode.LeftAlt:
@@ -156,6 +158,8 @@ namespace Editor2D
             switch (key) {
                 case KeyCode.LeftControl:
                 case KeyCode.RightControl:
+                case KeyCode.LeftCommand:
+                case KeyCode.RightCommand:
                     modifier = Modifier.Control;
                     break;
 
