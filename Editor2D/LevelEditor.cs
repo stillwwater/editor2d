@@ -102,11 +102,31 @@ namespace Editor2D
 
 #if UNITY_EDITOR
         [ContextMenu("Load Level (.lvl)")]
+        void LoadNewLevel() {
+            ClearLevel();
+            LoadLevel();
+        }
+
+        [ContextMenu("Load Level (Don't Clear)")]
         void LoadLevel() {
             if (!Camera) Camera = Camera.main;
             var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
             var tmp_buffer = CreateBuffer(ref chunk);
             tmp_buffer.LoadBufferFromFile();
+            tmp_buffer.Free();
+        }
+
+        [ContextMenu("Clear Level")]
+        void ClearLevel() {
+            if (!Camera) Camera = Camera.main;
+            var chunk = ChunkUtil.Alloc(TileSize, MinArea, MaxArea, Sorting);
+            var tmp_buffer = CreateBuffer(ref chunk);
+
+            for (int layer = 0; layer < chunk.layers.Count; layer++) {
+                tmp_buffer.layer = layer;
+                tmp_buffer.SelectAllInLayer();
+                tmp_buffer.Erase();
+            }
             tmp_buffer.Free();
         }
 #endif

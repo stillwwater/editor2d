@@ -94,7 +94,14 @@ namespace Editor2D
 
         internal void Free() {
             foreach (var entity in deletion_pool) {
+#if UNITY_EDITOR
+                if (Application.isPlaying)
+                    GameObject.Destroy(entity);
+                else
+                    GameObject.DestroyImmediate(entity);
+#else
                 GameObject.Destroy(entity);
+#endif
             }
 
             Array.Resize(ref selection, 1);
